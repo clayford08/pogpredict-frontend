@@ -32,7 +32,7 @@ export default function LeaderboardPage() {
   const loadLeaderboard = () => {
     try {
       setLoading(true);
-      const leaderboardRef = ref(database, 'leaderboard');
+      const leaderboardRef = ref(database, 'stats');
       
       onValue(leaderboardRef, async (snapshot) => {
         const data = snapshot.val();
@@ -46,12 +46,12 @@ export default function LeaderboardPage() {
         const entries = Object.entries(data).map(([address, stats]: [string, any]) => ({
           address,
           stats: {
-            marketsParticipated: Number(stats.marketsParticipated) || 0,
+            marketsParticipated: Number(stats.totalBets) || 0,
             wins: Number(stats.wins) || 0,
             losses: Number(stats.losses) || 0,
-            totalETHWon: ethers.formatEther(stats.totalETHWon || '0'),
-            lifetimeETHStaked: ethers.formatEther(stats.lifetimeETHStaked || '0'),
-            activeETHStaked: ethers.formatEther(stats.activeETHStaked || '0'),
+            totalETHWon: ethers.formatEther(stats.totalWinnings || '0'),
+            lifetimeETHStaked: ethers.formatEther(stats.totalStaked || '0'),
+            activeETHStaked: ethers.formatEther(stats.activeStaked || '0'),
             lastActiveTimestamp: Number(stats.lastActiveTimestamp) || 0,
             currentStreak: Number(stats.currentStreak) || 0,
             bestStreak: Number(stats.bestStreak) || 0,
@@ -209,7 +209,7 @@ export default function LeaderboardPage() {
                     <td className="p-4">{index + 1}</td>
                     <td className="p-4">{formatAddress(entry.address)}</td>
                     <td className="p-4">{Number(entry.stats.totalETHWon).toFixed(4)} AVAX</td>
-                    <td className="p-4">{Number(entry.stats.totalSpent || 0).toFixed(4)} AVAX</td>
+                    <td className="p-4">{Number(entry.stats.lifetimeETHStaked).toFixed(4)} AVAX</td>
                     <td className="p-4">{entry.stats.wins}</td>
                     <td className="p-4">{entry.stats.bestStreak}</td>
                     <td className="p-4">{entry.stats.totalROI.toFixed(1)}%</td>
