@@ -48,40 +48,6 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
     );
   }
 
-  const getActivityColor = (type: UserActivity['type']) => {
-    switch (type) {
-      case 'prediction':
-        return 'bg-green-500/20 text-green-500';
-      case 'win':
-        return 'bg-purple-500/20 text-purple-500';
-      case 'loss':
-        return 'bg-red-500/20 text-red-500';
-      case 'claim':
-        return 'bg-blue-500/20 text-blue-500';
-      case 'refund':
-        return 'bg-yellow-500/20 text-yellow-500';
-      default:
-        return 'bg-gray-500/20 text-gray-500';
-    }
-  };
-
-  const getActivityType = (type: UserActivity['type']) => {
-    switch (type) {
-      case 'prediction':
-        return 'Prediction';
-      case 'win':
-        return 'Win';
-      case 'loss':
-        return 'Loss';
-      case 'claim':
-        return 'Claim';
-      case 'refund':
-        return 'Refund';
-      default:
-        return type.charAt(0).toUpperCase() + type.slice(1);
-    }
-  };
-
   return (
     <div className="cyber-card">
       <h2 className="cyber-subtitle mb-4">Recent Activity</h2>
@@ -89,7 +55,6 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
         <table className="w-full">
           <thead>
             <tr className="text-left border-b border-pog-orange/20">
-              <th className="pb-4 font-semibold text-pog-orange">Type</th>
               <th className="pb-4 font-semibold text-pog-orange">Market</th>
               <th className="pb-4 font-semibold text-pog-orange">Position</th>
               <th className="pb-4 font-semibold text-pog-orange">Amount</th>
@@ -109,11 +74,6 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
                   key={`${activity.txHash || activity.timestamp}-${index}`}
                   className="border-b border-pog-orange/10 hover:bg-pog-orange/5 transition-all duration-300"
                 >
-                  <td className="py-4">
-                    <span className={`px-2 py-1 rounded text-sm ${getActivityColor(activity.type)}`}>
-                      {getActivityType(activity.type)}
-                    </span>
-                  </td>
                   <td className="py-4">
                     <Link 
                       href={`/markets/${activity.marketId}`}
