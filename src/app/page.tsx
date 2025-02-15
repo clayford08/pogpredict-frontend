@@ -14,6 +14,7 @@ export default function Home() {
     id: number;
     endTime: number;
     status: string;
+    totalPool: bigint;
   };
 
   const [markets, setMarkets] = useState<ExtendedMarket[]>([]);
@@ -36,19 +37,16 @@ export default function Home() {
           return;
         }
 
-        // Get the most recent markets (up to FEATURED_MARKET_COUNT)
-        const startIndex = Math.max(0, totalMarkets - FEATURED_MARKET_COUNT);
-        const count = Math.min(FEATURED_MARKET_COUNT, totalMarkets);
-        
-        // Create an array of promises for parallel fetching
-        const marketPromises = Array.from({ length: count }, (_, i) => 
-          getMarket(startIndex + i)
+        // Get all markets for pool size comparison
+        const marketPromises = Array.from({ length: totalMarkets }, (_, i) => 
+          getMarket(i)
             .then(market => market ? ({
               ...market,
-              id: startIndex + i,
+              id: i,
               question: market.question.replace(/^Match\s*\d*\s*:?\s*/i, ''), // Clean the question
               endTime: Number(market.endTime),
               status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
+              totalPool: BigInt(market.totalOptionA) + BigInt(market.totalOptionB) // Calculate total pool
             }) : null)
             .catch(() => null) // Handle individual market fetch failures gracefully
         );
@@ -56,7 +54,7 @@ export default function Home() {
         // Fetch all markets in parallel
         const fetchedMarkets = await Promise.all(marketPromises);
         
-        // Filter out null results, resolved old markets, and sort by endTime
+        // Filter out null results, resolved old markets, and sort by total pool size
         const currentTime = Date.now();
         const validMarkets = fetchedMarkets
           .filter((market): market is ExtendedMarket => 
@@ -65,7 +63,13 @@ export default function Home() {
             (!market.resolved || 
              (currentTime - Number(market.endTime) * 1000) < RESOLVED_MARKET_THRESHOLD)
           )
-          .sort((a, b) => b.endTime - a.endTime);
+          .sort((a, b) => {
+            // Sort by total pool size in descending order
+            const poolA = a.totalPool;
+            const poolB = b.totalPool;
+            return poolB > poolA ? 1 : poolB < poolA ? -1 : 0;
+          })
+          .slice(0, FEATURED_MARKET_COUNT); // Take only the top 3 markets
 
         setMarkets(validMarkets);
       } catch (error) {
