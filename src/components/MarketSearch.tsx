@@ -12,9 +12,9 @@ interface MarketSearchProps {
   setSelectedStatus: (status: string) => void;
   sortBy: string;
   setSortBy: (sort: string) => void;
+  categories: string[];
 }
 
-const categories = ['All', 'CS2', 'Dota', 'League of Legends', 'Valorant'];
 const statuses = ['All', 'ACTIVE', 'ENDED'];
 const sortOptions = [
   { value: 'endTime', label: 'End Time' },
@@ -31,6 +31,7 @@ export default function MarketSearch({
   setSelectedStatus,
   sortBy,
   setSortBy,
+  categories,
 }: MarketSearchProps) {
   return (
     <div className="mb-8">
