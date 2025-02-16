@@ -59,9 +59,9 @@ export default function Home() {
         const validMarkets = fetchedMarkets
           .filter((market): market is ExtendedMarket => 
             market !== null && 
-            // Keep unresolved markets or recently resolved ones
-            (!market.resolved || 
-             (currentTime - Number(market.endTime) * 1000) < RESOLVED_MARKET_THRESHOLD)
+            // Only show active markets (end time is in the future and not resolved)
+            Number(market.endTime) * 1000 > currentTime &&
+            !market.resolved
           )
           .sort((a, b) => {
             // Sort by total pool size in descending order
