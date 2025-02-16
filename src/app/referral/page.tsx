@@ -19,7 +19,7 @@ interface ReferralStats {
 
 export default function ReferralPage() {
   const { account, connect } = useWeb3();
-  const { getReferralCode, getReferralEarnings, getReferralCount, setReferralCode, hasReferrerSet } = useReferral();
+  const { getReferralCode, getReferralEarnings, getReferralCount, setReferralCode, hasReferrerSet, setReferrer } = useReferral();
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +33,43 @@ export default function ReferralPage() {
   const [newCode, setNewCode] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [tempReferralCode, setTempReferralCode] = useState('');
+
+  // Handle setting referrer
+  const handleSetReferrer = async (code: string): Promise<boolean> => {
+    try {
+      setError('Setting referral code...');
+      console.log('Starting referral code setting process...');
+      
+      // Set referrer using Referral contract
+      const receipt = await setReferrer(code);
+      console.log('Referral transaction completed:', receipt);
+      
+      // Wait for the referrer to be set
+      setError('Waiting for referral transaction to be confirmed...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Verify referrer was set
+      const hasRef = await hasReferrerSet(account!);
+      console.log('Referrer check result:', hasRef);
+      
+      if (!hasRef) {
+        setError('Failed to set referral code. Please try again.');
+        return false;
+      }
+      
+      setHasReferrer(true);
+      setReferralCode(code);
+      setError('Referral code set successfully.');
+      
+      // Wait a moment for UI to update
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return true;
+    } catch (error: any) {
+      console.error('Error setting referral code:', error);
+      setError(error.message || 'Failed to set referral code');
+      return false;
+    }
+  };
 
   useEffect(() => {
     const fetchReferralData = async () => {
@@ -461,9 +498,9 @@ export default function ReferralPage() {
           </div>
 
           {/* Add Referrer Section */}
-          <div className="bg-gray-800/50 rounded-lg p-6 border border-pog-orange/20 mt-8">
-            <h2 className="text-xl font-bold text-white mb-4">Set Your Referrer</h2>
-            {!hasReferrer ? (
+          {!hasReferrer && (
+            <div className="bg-gray-800/50 rounded-lg p-6 border border-pog-orange/20 mt-8">
+              <h2 className="text-xl font-bold text-white mb-4">Set Your Referrer</h2>
               <div className="space-y-4">
                 <p className="text-gray-300">
                   Enter a referral code to set your referrer. This cannot be changed later.
@@ -500,12 +537,8 @@ export default function ReferralPage() {
                   Note: Setting a referrer is optional but cannot be changed once set.
                 </p>
               </div>
-            ) : (
-              <p className="text-gray-300">
-                You already have a referrer set. This cannot be changed.
-              </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Referrer Status */}
           <div className="bg-gray-800/50 rounded-lg p-6 border border-pog-orange/20 mt-8">
