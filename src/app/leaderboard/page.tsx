@@ -32,9 +32,9 @@ export default function LeaderboardPage() {
   const loadLeaderboard = () => {
     try {
       setLoading(true);
-      const leaderboardRef = ref(database, 'stats');
+      const statsRef = ref(database, 'stats');
       
-      onValue(leaderboardRef, async (snapshot) => {
+      onValue(statsRef, async (snapshot) => {
         const data = snapshot.val();
         if (!data) {
           setLeaderboard([]);
@@ -61,7 +61,7 @@ export default function LeaderboardPage() {
           }
         }));
 
-        // Sort entries
+        // Sort entries by ROI descending
         const sortedEntries = sortLeaderboard(entries, sortBy, sortDirection);
         setLeaderboard(sortedEntries);
         setLoading(false);

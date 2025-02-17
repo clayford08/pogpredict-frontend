@@ -45,32 +45,31 @@ export class StatsIndexer {
     // Listen for new bets
     this.contract.on('OptionBought', async (user, marketId, isOptionA, ethAmount, timestamp) => {
       try {
-        const userRef = ref(this.database, `leaderboard/${user.toLowerCase()}`);
+        const userRef = ref(this.database, `stats/${user.toLowerCase()}`);
         const safeEthAmount = ethAmount.toString();
 
         // Get current stats
         const realtimeSnapshot = await get(userRef);
         const currentStats = realtimeSnapshot.val() || {
-          marketsParticipated: '0',
-          wins: '0',
-          losses: '0',
-          totalETHWon: '0',
-          lifetimeETHStaked: '0',
-          activeETHStaked: '0',
+          totalBets: 0,
+          wins: 0,
+          losses: 0,
+          totalWinnings: '0',
+          totalLost: '0',
+          totalStaked: '0',
           lastActiveTimestamp: '0',
-          currentStreak: '0',
-          bestStreak: '0',
+          currentStreak: 0,
+          bestStreak: 0,
           largestWin: '0',
           largestLoss: '0',
-          totalROI: '0'
+          totalROI: 0
         };
 
         // Update stats
         await set(userRef, {
           ...currentStats,
-          marketsParticipated: (Number(currentStats.marketsParticipated) + 1).toString(),
-          lifetimeETHStaked: (BigInt(currentStats.lifetimeETHStaked) + BigInt(safeEthAmount)).toString(),
-          activeETHStaked: (BigInt(currentStats.activeETHStaked) + BigInt(safeEthAmount)).toString(),
+          totalBets: currentStats.totalBets + 1,
+          totalStaked: (BigInt(currentStats.totalStaked) + BigInt(safeEthAmount)).toString(),
           lastActiveTimestamp: timestamp.toString()
         });
 
@@ -91,29 +90,29 @@ export class StatsIndexer {
     // Listen for user wins
     this.contract.on('UserWon', async (user, marketId, amount) => {
       try {
-        const userRef = ref(this.database, `leaderboard/${user.toLowerCase()}`);
+        const userRef = ref(this.database, `stats/${user.toLowerCase()}`);
         const safeAmount = amount.toString();
 
         // Get current stats
         const realtimeSnapshot = await get(userRef);
         const currentStats = realtimeSnapshot.val() || {
-          marketsParticipated: '0',
-          wins: '0',
-          losses: '0',
-          totalETHWon: '0',
-          lifetimeETHStaked: '0',
-          activeETHStaked: '0',
+          totalBets: 0,
+          wins: 0,
+          losses: 0,
+          totalWinnings: '0',
+          totalLost: '0',
+          totalStaked: '0',
           lastActiveTimestamp: '0',
-          currentStreak: '0',
-          bestStreak: '0',
+          currentStreak: 0,
+          bestStreak: 0,
           largestWin: '0',
           largestLoss: '0',
-          totalROI: '0'
+          totalROI: 0
         };
 
         // Update streak
-        const newCurrentStreak = Number(currentStats.currentStreak) + 1;
-        const newBestStreak = Math.max(newCurrentStreak, Number(currentStats.bestStreak));
+        const newCurrentStreak = currentStats.currentStreak + 1;
+        const newBestStreak = Math.max(newCurrentStreak, currentStats.bestStreak);
 
         // Update largest win if applicable
         const newLargestWin = BigInt(safeAmount) > BigInt(currentStats.largestWin || '0') 
@@ -121,9 +120,9 @@ export class StatsIndexer {
           : currentStats.largestWin;
 
         // Calculate new ROI
-        const totalStaked = BigInt(currentStats.lifetimeETHStaked);
+        const totalStaked = BigInt(currentStats.totalStaked);
         const totalLost = BigInt(currentStats.totalLost || '0');
-        const newTotalWon = BigInt(currentStats.totalETHWon) + BigInt(safeAmount);
+        const newTotalWon = BigInt(currentStats.totalWinnings) + BigInt(safeAmount);
         const netProfit = newTotalWon - totalLost;
         const newTotalROI = totalStaked > 0n 
           ? (Number((netProfit * 10000n / totalStaked)) / 100)
@@ -131,12 +130,12 @@ export class StatsIndexer {
 
         await set(userRef, {
           ...currentStats,
-          wins: (Number(currentStats.wins) + 1).toString(),
-          totalETHWon: newTotalWon.toString(),
-          currentStreak: newCurrentStreak.toString(),
-          bestStreak: newBestStreak.toString(),
+          wins: currentStats.wins + 1,
+          totalWinnings: newTotalWon.toString(),
+          currentStreak: newCurrentStreak,
+          bestStreak: newBestStreak,
           largestWin: newLargestWin,
-          totalROI: newTotalROI.toString()
+          totalROI: newTotalROI
         });
 
         // Add activity
@@ -155,24 +154,24 @@ export class StatsIndexer {
     // Listen for user losses
     this.contract.on('UserLost', async (user, marketId, amount) => {
       try {
-        const userRef = ref(this.database, `leaderboard/${user.toLowerCase()}`);
+        const userRef = ref(this.database, `stats/${user.toLowerCase()}`);
         const safeAmount = amount.toString();
 
         // Get current stats
         const realtimeSnapshot = await get(userRef);
         const currentStats = realtimeSnapshot.val() || {
-          marketsParticipated: '0',
-          wins: '0',
-          losses: '0',
-          totalETHWon: '0',
-          lifetimeETHStaked: '0',
-          activeETHStaked: '0',
+          totalBets: 0,
+          wins: 0,
+          losses: 0,
+          totalWinnings: '0',
+          totalLost: '0',
+          totalStaked: '0',
           lastActiveTimestamp: '0',
-          currentStreak: '0',
-          bestStreak: '0',
+          currentStreak: 0,
+          bestStreak: 0,
           largestWin: '0',
           largestLoss: '0',
-          totalROI: '0'
+          totalROI: 0
         };
 
         // Update largest loss if applicable
@@ -181,20 +180,20 @@ export class StatsIndexer {
           : currentStats.largestLoss;
 
         // Calculate new ROI
-        const totalStaked = BigInt(currentStats.lifetimeETHStaked);
+        const totalStaked = BigInt(currentStats.totalStaked);
         const newTotalLost = BigInt(currentStats.totalLost || '0') + BigInt(safeAmount);
-        const netProfit = BigInt(currentStats.totalETHWon) - newTotalLost;
+        const netProfit = BigInt(currentStats.totalWinnings) - newTotalLost;
         const newTotalROI = totalStaked > 0n 
           ? (Number((netProfit * 10000n / totalStaked)) / 100)
           : 0;
 
         await set(userRef, {
           ...currentStats,
-          losses: (Number(currentStats.losses) + 1).toString(),
+          losses: currentStats.losses + 1,
           totalLost: newTotalLost.toString(),
           largestLoss: newLargestLoss,
-          currentStreak: '0', // Reset streak on loss
-          totalROI: newTotalROI.toString()
+          currentStreak: 0, // Reset streak on loss
+          totalROI: newTotalROI
         });
 
         // Add activity
@@ -215,43 +214,43 @@ export class StatsIndexer {
       try {
         if (payout === 0n) return; // Skip if no payout
         
-        const userRef = ref(this.database, `leaderboard/${user.toLowerCase()}`);
+        const userRef = ref(this.database, `stats/${user.toLowerCase()}`);
         const safePayout = payout.toString();
         
         // Get current stats
         const realtimeSnapshot = await get(userRef);
         const currentStats = realtimeSnapshot.val() || {
-          marketsParticipated: '0',
-          wins: '0',
-          losses: '0',
-          totalETHWon: '0',
-          lifetimeETHStaked: '0',
-          activeETHStaked: '0',
+          totalBets: 0,
+          wins: 0,
+          losses: 0,
+          totalWinnings: '0',
+          totalLost: '0',
+          totalStaked: '0',
           lastActiveTimestamp: '0',
-          currentStreak: '0',
-          bestStreak: '0',
+          currentStreak: 0,
+          bestStreak: 0,
           largestWin: '0',
           largestLoss: '0',
-          totalROI: '0'
+          totalROI: 0
         };
 
         // Update total winnings and largest win if applicable
-        const newTotalETHWon = (BigInt(currentStats.totalETHWon) + BigInt(safePayout)).toString();
+        const newTotalWinnings = (BigInt(currentStats.totalWinnings) + BigInt(safePayout)).toString();
         const newLargestWin = BigInt(safePayout) > BigInt(currentStats.largestWin || '0') 
           ? safePayout 
           : currentStats.largestWin;
 
         // Calculate new ROI
-        const totalStaked = BigInt(currentStats.lifetimeETHStaked);
+        const totalStaked = BigInt(currentStats.totalStaked);
         const totalLost = BigInt(currentStats.totalLost || '0');
-        const netProfit = BigInt(newTotalETHWon) - totalLost;
+        const netProfit = BigInt(newTotalWinnings) - totalLost;
         const newTotalROI = totalStaked > 0n 
           ? (Number((netProfit * 10000n / totalStaked)) / 100)
           : 0;
 
         await set(userRef, {
           ...currentStats,
-          totalETHWon: newTotalETHWon,
+          totalWinnings: newTotalWinnings,
           largestWin: newLargestWin,
           totalROI: newTotalROI.toString(),
           lastActiveTimestamp: timestamp.toString()
