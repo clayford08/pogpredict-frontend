@@ -32,7 +32,7 @@ export function useUserStats(address: string | undefined) {
     }
 
     setLoading(true);
-    const userRef = ref(database, `leaderboard/${address.toLowerCase()}`);
+    const userRef = ref(database, `stats/${address.toLowerCase()}`);
 
     const unsubscribe = onValue(userRef, (snapshot) => {
       const data = snapshot.val();
@@ -43,17 +43,17 @@ export function useUserStats(address: string | undefined) {
       }
 
       setStats({
-        marketsParticipated: Number(data.marketsParticipated) || 0,
+        marketsParticipated: Number(data.totalBets) || 0,
         wins: Number(data.wins) || 0,
         losses: Number(data.losses) || 0,
-        totalETHWon: ethers.formatEther(data.totalETHWon || '0'),
-        lifetimeETHStaked: ethers.formatEther(data.lifetimeETHStaked || '0'),
-        activeETHStaked: ethers.formatEther(data.activeETHStaked || '0'),
+        totalETHWon: data.totalWinnings || '0',
+        lifetimeETHStaked: data.totalStaked || '0',
+        activeETHStaked: data.activeStaked || '0',
         lastActiveTimestamp: Number(data.lastActiveTimestamp) || 0,
         currentStreak: Number(data.currentStreak) || 0,
         bestStreak: Number(data.bestStreak) || 0,
-        largestWin: ethers.formatEther(data.largestWin || '0'),
-        largestLoss: ethers.formatEther(data.largestLoss || '0'),
+        largestWin: data.largestWin || '0',
+        largestLoss: data.largestLoss || '0',
         totalROI: Number(data.totalROI) || 0
       });
       setLoading(false);
