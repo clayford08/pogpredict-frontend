@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { database } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
+import { request, gql } from 'graphql-request';
+
+const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL || '';
 
 interface UserStats {
   address: string;
@@ -18,65 +19,72 @@ interface LeaderboardEntry extends UserStats {
   winRate: number;
 }
 
+const LEADERBOARD_QUERY = gql`
+  query GetLeaderboard {
+    users(
+      first: 100,
+      orderBy: totalROI,
+      orderDirection: desc,
+      where: { totalBets_gt: 0 }
+    ) {
+      id
+      totalBets
+      wins
+      losses
+      totalWinnings
+      totalLost
+      totalStaked
+      lastActiveTimestamp
+      totalROI
+    }
+  }
+`;
+
 export function useLeaderboard() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const statsRef = ref(database, 'stats');
+    const fetchLeaderboard = async () => {
+      if (!SUBGRAPH_URL) return;
 
-    const unsubscribe = onValue(statsRef, (snapshot) => {
       try {
-        const stats = snapshot.val();
-        if (!stats) {
-          setLeaderboard([]);
-          setLoading(false);
-          return;
-        }
-
-        // Process stats into leaderboard entries
-        const entries: LeaderboardEntry[] = Object.entries(stats).map(([address, userStats]: [string, any]) => {
-          const totalStaked = BigInt(userStats.totalStaked || '0');
-          const totalWinnings = BigInt(userStats.totalWinnings || '0');
-          const totalLost = BigInt(userStats.totalLost || '0');
-          
-          // Calculate ROI
-          const roi = totalStaked > 0n 
-            ? Number((totalWinnings - totalLost) * 10000n / totalStaked) / 100
-            : 0;
-
-          // Calculate win rate
-          const winRate = (userStats.totalBets || 0) > 0
-            ? (userStats.wins || 0) / (userStats.totalBets || 1) * 100
+        const { users } = await request(SUBGRAPH_URL, LEADERBOARD_QUERY);
+        
+        const entries: LeaderboardEntry[] = users.map((user: any) => {
+          const winRate = Number(user.totalBets) > 0
+            ? (Number(user.wins) / Number(user.totalBets)) * 100
             : 0;
 
           return {
-            address,
-            ...userStats,
-            roi,
+            address: user.id,
+            totalBets: Number(user.totalBets),
+            wins: Number(user.wins),
+            losses: Number(user.losses),
+            totalWinnings: user.totalWinnings,
+            totalLost: user.totalLost,
+            totalStaked: user.totalStaked,
+            lastActiveTimestamp: user.lastActiveTimestamp,
+            roi: Number(user.totalROI),
             winRate
           };
         });
 
-        // Sort by ROI descending
-        entries.sort((a, b) => b.roi - a.roi);
-
         setLeaderboard(entries);
         setError(null);
       } catch (err) {
-        console.error('Error processing leaderboard data:', err);
+        console.error('Error fetching leaderboard data:', err);
         setError('Failed to load leaderboard data');
       } finally {
         setLoading(false);
       }
-    }, (error) => {
-      console.error('Error fetching leaderboard data:', error);
-      setError('Failed to fetch leaderboard data');
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchLeaderboard();
+    const interval = setInterval(fetchLeaderboard, 15000); // Poll every 15 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   return { leaderboard, loading, error };

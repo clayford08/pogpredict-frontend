@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ethers } from 'ethers';
-import { useContract } from './useContract';
-import { database } from '@/lib/firebase';
-import { ref, onValue, off } from 'firebase/database';
+import { request, gql } from 'graphql-request';
+
+const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL || '';
 
 export interface UserStats {
   marketsParticipated: number;
@@ -19,10 +19,64 @@ export interface UserStats {
   totalROI: number;
 }
 
+const USER_STATS_QUERY = gql`
+  query GetUserStats($id: ID!) {
+    user(id: $id) {
+      totalBets
+      wins
+      losses
+      totalWinnings
+      totalLost
+      totalStaked
+      lastActiveTimestamp
+      currentStreak
+      bestStreak
+      largestWin
+      largestLoss
+      totalROI
+    }
+  }
+`;
+
 export function useUserStats(address: string | undefined) {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    if (!address || !SUBGRAPH_URL) return null;
+
+    try {
+      const { user } = await request(SUBGRAPH_URL, USER_STATS_QUERY, {
+        id: address.toLowerCase()
+      });
+
+      if (!user) {
+        setStats(null);
+        return;
+      }
+
+      setStats({
+        marketsParticipated: Number(user.totalBets),
+        wins: Number(user.wins),
+        losses: Number(user.losses),
+        totalETHWon: user.totalWinnings,
+        lifetimeETHStaked: user.totalStaked,
+        activeETHStaked: user.activeStaked || '0',
+        lastActiveTimestamp: Number(user.lastActiveTimestamp),
+        currentStreak: Number(user.currentStreak),
+        bestStreak: Number(user.bestStreak),
+        largestWin: user.largestWin,
+        largestLoss: user.largestLoss,
+        totalROI: Number(user.totalROI)
+      });
+    } catch (err) {
+      console.error('Error fetching user stats:', err);
+      setError('Failed to load user stats');
+    } finally {
+      setLoading(false);
+    }
+  }, [address]);
 
   useEffect(() => {
     if (!address) {
@@ -32,41 +86,13 @@ export function useUserStats(address: string | undefined) {
     }
 
     setLoading(true);
-    const userRef = ref(database, `stats/${address.toLowerCase()}`);
+    fetchStats();
 
-    const unsubscribe = onValue(userRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        setStats(null);
-        setLoading(false);
-        return;
-      }
+    // Set up polling for updates
+    const interval = setInterval(fetchStats, 15000); // Poll every 15 seconds
 
-      setStats({
-        marketsParticipated: Number(data.totalBets) || 0,
-        wins: Number(data.wins) || 0,
-        losses: Number(data.losses) || 0,
-        totalETHWon: data.totalWinnings || '0',
-        lifetimeETHStaked: data.totalStaked || '0',
-        activeETHStaked: data.activeStaked || '0',
-        lastActiveTimestamp: Number(data.lastActiveTimestamp) || 0,
-        currentStreak: Number(data.currentStreak) || 0,
-        bestStreak: Number(data.bestStreak) || 0,
-        largestWin: data.largestWin || '0',
-        largestLoss: data.largestLoss || '0',
-        totalROI: Number(data.totalROI) || 0
-      });
-      setLoading(false);
-    }, (error) => {
-      console.error('Error loading user stats:', error);
-      setError('Failed to load user stats');
-      setLoading(false);
-    });
-
-    return () => {
-      off(userRef);
-    };
-  }, [address]);
+    return () => clearInterval(interval);
+  }, [address, fetchStats]);
 
   return { stats, loading, error };
 } 

@@ -1,0 +1,83 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: PogPredict
+    network: avalanche
+    source:
+      address: "0x6603ed335e0B7f4D907849864613cFc53cDEd16d"
+      abi: PogPredict
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ContractSettingUpdated
+        - FeeRecipientChanged
+        - ManualResolutionToggled
+        - MarketCreated
+        - MarketRefunded
+        - MarketResolved
+        - OptionBought
+        - OptionSold
+        - OracleUpdaterChanged
+        - OwnershipTransferStarted
+        - OwnershipTransferred
+        - Paused
+        - PositionLost
+        - PositionWon
+        - ReferralFeeDistributed
+        - RefundClaimed
+        - Unpaused
+        - UserLost
+        - UserWon
+        - WinningsClaimed
+      abis:
+        - name: PogPredict
+          file: ./abis/PogPredict.json
+      eventHandlers:
+        - event: ContractSettingUpdated(string,uint256,uint256)
+          handler: handleContractSettingUpdated
+        - event: FeeRecipientChanged(address,address)
+          handler: handleFeeRecipientChanged
+        - event: ManualResolutionToggled(bool)
+          handler: handleManualResolutionToggled
+        - event: MarketCreated(indexed uint256,string,string,string,string,string,string,uint256,uint256)
+          handler: handleMarketCreated
+        - event: MarketRefunded(indexed uint256,string,address)
+          handler: handleMarketRefunded
+        - event: MarketResolved(indexed uint256,uint8,uint8,string,address)
+          handler: handleMarketResolved
+        - event: OptionBought(indexed address,indexed uint256,bool,uint256,uint256)
+          handler: handleOptionBought
+        - event: OptionSold(indexed address,indexed uint256,bool,uint256,uint256,uint256)
+          handler: handleOptionSold
+        - event: OracleUpdaterChanged(address,address)
+          handler: handleOracleUpdaterChanged
+        - event: OwnershipTransferStarted(indexed address,indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: Paused(address)
+          handler: handlePaused
+        - event: PositionLost(indexed address,indexed uint256,uint256)
+          handler: handlePositionLost
+        - event: PositionWon(indexed address,indexed uint256,uint256)
+          handler: handlePositionWon
+        - event: ReferralFeeDistributed(indexed address,indexed address,uint256,uint256)
+          handler: handleReferralFeeDistributed
+        - event: RefundClaimed(indexed uint256,indexed address,uint256)
+          handler: handleRefundClaimed
+        - event: Unpaused(address)
+          handler: handleUnpaused
+        - event: UserLost(indexed address,indexed uint256,uint256)
+          handler: handleUserLost
+        - event: UserWon(indexed address,indexed uint256,uint256)
+          handler: handleUserWon
+        - event: WinningsClaimed(indexed address,indexed uint256,uint256,uint256)
+          handler: handleWinningsClaimed
+      file: ./src/pog-predict.ts

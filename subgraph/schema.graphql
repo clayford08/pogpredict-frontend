@@ -1,0 +1,88 @@
+type User @entity {
+  id: ID! # user address
+  totalBets: BigInt!
+  wins: BigInt!
+  losses: BigInt!
+  totalWinnings: BigInt!
+  totalLost: BigInt!
+  totalStaked: BigInt!
+  lastActiveTimestamp: BigInt!
+  currentStreak: BigInt!
+  bestStreak: BigInt!
+  largestWin: BigInt!
+  largestLoss: BigInt!
+  totalROI: BigDecimal!
+  bets: [Bet!]! @derivedFrom(field: "user")
+  marketsCreated: [Market!]! @derivedFrom(field: "creator")
+  monthlyStats: [MonthlyStat!]! @derivedFrom(field: "user")
+}
+
+type Market @entity {
+  id: ID! # market id
+  creator: User!
+  question: String!
+  optionA: String!
+  optionB: String!
+  category: String!
+  logoUrlA: String!
+  logoUrlB: String!
+  endTime: BigInt!
+  oracleMatchId: BigInt!
+  totalPoolA: BigInt!
+  totalPoolB: BigInt!
+  outcome: Int # null if not resolved
+  resolvedBy: Bytes # address of resolver
+  resolutionDetails: String
+  resolutionTimestamp: BigInt
+  bets: [Bet!]! @derivedFrom(field: "market")
+  createdAt: BigInt!
+  priceHistory: [PriceSnapshot!]! @derivedFrom(field: "market")
+  currentPriceA: BigDecimal!
+  currentPriceB: BigDecimal!
+}
+
+type Bet @entity {
+  id: ID! # marketId-userAddress
+  user: User!
+  market: Market!
+  isOptionA: Boolean!
+  amount: BigInt!
+  timestamp: BigInt!
+  outcome: Int # null if market not resolved
+  claimed: Boolean!
+  winnings: BigInt # null if lost or not claimed
+}
+
+type MonthlyStat @entity {
+  id: ID! # userAddress-YYYY-MM
+  user: User!
+  yearMonth: String! # YYYY-MM format
+  wins: BigInt!
+  losses: BigInt!
+  winnings: BigInt!
+  staked: BigInt!
+  optionACount: BigInt!
+  optionBCount: BigInt!
+}
+
+type GlobalStat @entity {
+  id: ID! # "global"
+  totalUsers: BigInt!
+  totalMarkets: BigInt!
+  totalBets: BigInt!
+  totalVolumeStaked: BigInt!
+  totalWinnings: BigInt!
+  averageROI: BigDecimal!
+  lastUpdateTimestamp: BigInt!
+}
+
+type PriceSnapshot @entity {
+  id: ID! # marketId-timestamp
+  market: Market!
+  timestamp: BigInt!
+  priceA: BigDecimal!
+  priceB: BigDecimal!
+  totalPoolA: BigInt!
+  totalPoolB: BigInt!
+  blockNumber: BigInt!
+} 

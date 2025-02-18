@@ -1,0 +1,204 @@
+type ContractSettingUpdated @entity(immutable: true) {
+  id: Bytes!
+  setting: String! # string
+  oldValue: BigInt! # uint256
+  newValue: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type FeeRecipientChanged @entity(immutable: true) {
+  id: Bytes!
+  oldRecipient: Bytes! # address
+  newRecipient: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ManualResolutionToggled @entity(immutable: true) {
+  id: Bytes!
+  enabled: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MarketCreated @entity(immutable: true) {
+  id: Bytes!
+  marketId: BigInt! # uint256
+  question: String! # string
+  optionA: String! # string
+  optionB: String! # string
+  category: String! # string
+  logoUrlA: String! # string
+  logoUrlB: String! # string
+  endTime: BigInt! # uint256
+  oracleMatchId: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MarketRefunded @entity(immutable: true) {
+  id: Bytes!
+  marketId: BigInt! # uint256
+  reason: String! # string
+  resolvedBy: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MarketResolved @entity(immutable: true) {
+  id: Bytes!
+  marketId: BigInt! # uint256
+  outcome: Int! # uint8
+  source: Int! # uint8
+  details: String! # string
+  resolvedBy: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OptionBought @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  isOptionA: Boolean! # bool
+  amount: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OptionSold @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  isOptionA: Boolean! # bool
+  amount: BigInt! # uint256
+  payout: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OracleUpdaterChanged @entity(immutable: true) {
+  id: Bytes!
+  oldUpdater: Bytes! # address
+  newUpdater: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferStarted @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Paused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PositionLost @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PositionWon @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ReferralFeeDistributed @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  referrer: Bytes! # address
+  amount: BigInt! # uint256
+  marketId: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RefundClaimed @entity(immutable: true) {
+  id: Bytes!
+  marketId: BigInt! # uint256
+  user: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Unpaused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type UserLost @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type UserWon @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WinningsClaimed @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  marketId: BigInt! # uint256
+  payout: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
