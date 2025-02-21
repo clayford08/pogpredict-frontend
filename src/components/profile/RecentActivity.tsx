@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { UserActivity } from '@/hooks/useUserProfile';
+import { MarketActivity } from '@/types/profile';
 import { formatEther } from '@/lib/utils';
 import { useContract } from '@/hooks/useContract';
 
@@ -12,21 +12,21 @@ interface MarketInfo {
 }
 
 interface RecentActivityProps {
-  activities: UserActivity[];
+  activity: MarketActivity[];
 }
 
-export default function RecentActivity({ activities }: RecentActivityProps) {
+export default function RecentActivity({ activity }: RecentActivityProps) {
   const { getMarket } = useContract();
   const [marketDetails, setMarketDetails] = useState<{ [marketId: string]: MarketInfo }>({});
 
   useEffect(() => {
     const fetchMarketDetails = async () => {
       const details: { [marketId: string]: MarketInfo } = {};
-      for (const activity of activities) {
-        if (!details[activity.marketId]) {
-          const market = await getMarket(parseInt(activity.marketId));
+      for (const item of activity) {
+        if (!details[item.marketId]) {
+          const market = await getMarket(parseInt(item.marketId.toString()));
           if (market) {
-            details[activity.marketId] = {
+            details[item.marketId] = {
               optionA: market.optionA,
               optionB: market.optionB
             };
@@ -37,9 +37,9 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
     };
 
     fetchMarketDetails();
-  }, [activities, getMarket]);
+  }, [activity, getMarket]);
 
-  if (activities.length === 0) {
+  if (activity.length === 0) {
     return (
       <div className="cyber-card">
         <h2 className="cyber-subtitle mb-4">Recent Activity</h2>
@@ -56,36 +56,38 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
           <thead>
             <tr className="text-left border-b border-pog-orange/20">
               <th className="pb-4 font-semibold text-pog-orange">Market</th>
+              <th className="pb-4 font-semibold text-pog-orange">Type</th>
               <th className="pb-4 font-semibold text-pog-orange">Position</th>
               <th className="pb-4 font-semibold text-pog-orange">Amount</th>
               <th className="pb-4 font-semibold text-pog-orange">Time</th>
             </tr>
           </thead>
           <tbody>
-            {activities.map((activity, index) => {
-              const market = marketDetails[activity.marketId];
-              const marketQuestion = market ? `${market.optionA} vs ${market.optionB}` : `Market #${activity.marketId}`;
-              const position = market && activity.isOptionA !== undefined 
-                ? (activity.isOptionA ? market.optionA : market.optionB)
+            {activity.map((item, index) => {
+              const market = marketDetails[item.marketId];
+              const marketQuestion = market ? `${market.optionA} vs ${market.optionB}` : `Market #${item.marketId}`;
+              const position = market && item.isOptionA !== undefined 
+                ? (item.isOptionA ? market.optionA : market.optionB)
                 : '-';
 
               return (
                 <tr
-                  key={`${activity.txHash || activity.timestamp}-${index}`}
+                  key={`${item.txHash || item.timestamp}-${index}`}
                   className="border-b border-pog-orange/10 hover:bg-pog-orange/5 transition-all duration-300"
                 >
                   <td className="py-4">
                     <Link 
-                      href={`/markets/${activity.marketId}`}
+                      href={`/markets/${item.marketId}`}
                       className="text-pog-orange hover:text-pog-orange/80 transition-colors"
                     >
                       {marketQuestion}
                     </Link>
                   </td>
+                  <td className="py-4 capitalize">{item.type}</td>
                   <td className="py-4">{position}</td>
-                  <td className="py-4">{formatEther(activity.amount)} AVAX</td>
+                  <td className="py-4">{item.amount} AVAX</td>
                   <td className="py-4">
-                    {new Date(activity.timestamp * 1000).toLocaleString()}
+                    {new Date(item.timestamp * 1000).toLocaleString()}
                   </td>
                 </tr>
               );
@@ -95,4 +97,4 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
       </div>
     </div>
   );
-} 
+}

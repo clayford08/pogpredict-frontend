@@ -2,45 +2,41 @@
 
 import React, { useState } from 'react';
 import { useLeaderboard, TimeFrame, SortBy } from '../hooks/useLeaderboard';
-import { formatEther } from 'ethers';
 import { shortenAddress } from '../utils/address';
+import { useWeb3 } from '@/components/Web3Provider';
 
 interface LeaderboardTableProps {
   timeframe: TimeFrame;
 }
 
+type SortableColumn = 'totalBets' | 'winRate' | 'totalStaked' | 'totalWinnings' | 'bestStreak';
+type SortDirection = 'asc' | 'desc';
+
 function LeaderboardSkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="mb-4 flex gap-2">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-10 w-24 bg-gray-200 rounded"></div>
-        ))}
-      </div>
-      <table className="min-w-full table-auto">
+      <table className="w-full">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="px-4 py-2 text-left">Rank</th>
-            <th className="px-4 py-2 text-left">Address</th>
-            <th className="px-4 py-2 text-right">Total Bets</th>
-            <th className="px-4 py-2 text-right">Win Rate</th>
-            <th className="px-4 py-2 text-right">Volume</th>
-            <th className="px-4 py-2 text-right">Winnings</th>
-            <th className="px-4 py-2 text-right">Losses</th>
-            <th className="px-4 py-2 text-right">Profit/Loss</th>
+          <tr className="border-b border-gray-700">
+            <th className="p-4">#</th>
+            <th className="p-4">Address</th>
+            <th className="p-4 text-center">Total Predictions</th>
+            <th className="p-4 text-center">Win Rate</th>
+            <th className="p-4 text-center">Volume</th>
+            <th className="p-4 text-center">Winnings</th>
+            <th className="p-4 text-center">Best Streak</th>
           </tr>
         </thead>
         <tbody>
           {[...Array(10)].map((_, i) => (
-            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-              <td className="px-4 py-2"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
-              <td className="px-4 py-2"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div></td>
-              <td className="px-4 py-2 text-right"><div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div></td>
+            <tr key={i} className="border-t border-gray-700">
+              <td className="p-4"><div className="h-4 bg-gray-800/50 rounded w-8"></div></td>
+              <td className="p-4"><div className="h-4 bg-gray-800/50 rounded w-32"></div></td>
+              <td className="p-4 text-center"><div className="h-4 bg-gray-800/50 rounded w-16 mx-auto"></div></td>
+              <td className="p-4 text-center"><div className="h-4 bg-gray-800/50 rounded w-16 mx-auto"></div></td>
+              <td className="p-4 text-center"><div className="h-4 bg-gray-800/50 rounded w-24 mx-auto"></div></td>
+              <td className="p-4 text-center"><div className="h-4 bg-gray-800/50 rounded w-24 mx-auto"></div></td>
+              <td className="p-4 text-center"><div className="h-4 bg-gray-800/50 rounded w-16 mx-auto"></div></td>
             </tr>
           ))}
         </tbody>
@@ -50,85 +46,141 @@ function LeaderboardSkeleton() {
 }
 
 export function LeaderboardTable({ timeframe }: LeaderboardTableProps) {
-  const [sortBy, setSortBy] = useState<SortBy>('winnings');
-  const { entries, loading, error } = useLeaderboard(timeframe, sortBy);
+  const [sortColumn, setSortColumn] = useState<SortableColumn>('totalWinnings');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const { entries: unsortedEntries, loading, error } = useLeaderboard(timeframe, 'winnings');
+  const { account } = useWeb3();
+
+  const handleSort = (column: SortableColumn) => {
+    if (sortColumn === column) {
+      // If clicking the same column, toggle direction
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
+    } else {
+      // If clicking a new column, set it with desc direction
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (column: SortableColumn) => {
+    if (sortColumn !== column) return '↕️';
+    return sortDirection === 'desc' ? '↓' : '↑';
+  };
+
+  const sortEntries = (entries: typeof unsortedEntries) => {
+    return [...entries].sort((a, b) => {
+      let aValue: number, bValue: number;
+
+      switch (sortColumn) {
+        case 'totalBets':
+          aValue = Number(a.totalBets);
+          bValue = Number(b.totalBets);
+          break;
+        case 'winRate':
+          const aWins = Number(a.wins), aLosses = Number(a.losses);
+          const bWins = Number(b.wins), bLosses = Number(b.losses);
+          aValue = aWins + aLosses > 0 ? (aWins / (aWins + aLosses)) : 0;
+          bValue = bWins + bLosses > 0 ? (bWins / (bWins + bLosses)) : 0;
+          break;
+        case 'totalStaked':
+          aValue = Number(a.totalStaked);
+          bValue = Number(b.totalStaked);
+          break;
+        case 'totalWinnings':
+          aValue = Number(a.totalWinnings);
+          bValue = Number(b.totalWinnings);
+          break;
+        case 'bestStreak':
+          aValue = Number(a.bestStreak);
+          bValue = Number(b.bestStreak);
+          break;
+        default:
+          return 0;
+      }
+
+      return sortDirection === 'desc' ? bValue - aValue : aValue - bValue;
+    });
+  };
 
   if (loading) return <LeaderboardSkeleton />;
   if (error) return (
-    <div className="p-4 text-red-500 bg-red-50 rounded">
-      Error: {error.message}
+    <div className="cyber-card bg-red-900/20 border-red-500/20">
+      <p className="text-red-500">Error: {error}</p>
     </div>
   );
 
+  const sortedEntries = sortEntries(unsortedEntries);
+
   return (
     <div className="overflow-x-auto">
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setSortBy('winnings')}
-          className={`px-4 py-2 rounded transition-colors ${
-            sortBy === 'winnings' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
-          }`}
-        >
-          By Winnings
-        </button>
-        <button
-          onClick={() => setSortBy('profitLoss')}
-          className={`px-4 py-2 rounded transition-colors ${
-            sortBy === 'profitLoss' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
-          }`}
-        >
-          By Profit/Loss
-        </button>
-        <button
-          onClick={() => setSortBy('volume')}
-          className={`px-4 py-2 rounded transition-colors ${
-            sortBy === 'volume' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
-          }`}
-        >
-          By Volume
-        </button>
-        <button
-          onClick={() => setSortBy('winRate')}
-          className={`px-4 py-2 rounded transition-colors ${
-            sortBy === 'winRate' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
-          }`}
-        >
-          By Win Rate
-        </button>
-      </div>
-
-      <table className="min-w-full table-auto">
+      <table className="w-full">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="px-4 py-2 text-left">Rank</th>
-            <th className="px-4 py-2 text-left">Address</th>
-            <th className="px-4 py-2 text-right">Total Bets</th>
-            <th className="px-4 py-2 text-right">Win Rate</th>
-            <th className="px-4 py-2 text-right">Volume</th>
-            <th className="px-4 py-2 text-right">Winnings</th>
-            <th className="px-4 py-2 text-right">Losses</th>
-            <th className="px-4 py-2 text-right">Profit/Loss</th>
+          <tr className="border-b border-gray-700">
+            <th className="p-4 text-left">#</th>
+            <th className="p-4 text-left">Address</th>
+            <th 
+              className="p-4 text-center cursor-pointer hover:text-pog-orange transition-colors"
+              onClick={() => handleSort('totalBets')}
+            >
+              Total Predictions {getSortIcon('totalBets')}
+            </th>
+            <th 
+              className="p-4 text-center cursor-pointer hover:text-pog-orange transition-colors"
+              onClick={() => handleSort('winRate')}
+            >
+              Win Rate {getSortIcon('winRate')}
+            </th>
+            <th 
+              className="p-4 text-center cursor-pointer hover:text-pog-orange transition-colors"
+              onClick={() => handleSort('totalStaked')}
+            >
+              Volume {getSortIcon('totalStaked')}
+            </th>
+            <th 
+              className="p-4 text-center cursor-pointer hover:text-pog-orange transition-colors"
+              onClick={() => handleSort('totalWinnings')}
+            >
+              Winnings {getSortIcon('totalWinnings')}
+            </th>
+            <th 
+              className="p-4 text-center cursor-pointer hover:text-pog-orange transition-colors"
+              onClick={() => handleSort('bestStreak')}
+            >
+              Best Streak {getSortIcon('bestStreak')}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry, index) => (
-            <tr key={entry.address} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-              <td className="px-4 py-2">{index + 1}</td>
-              <td className="px-4 py-2">{shortenAddress(entry.address)}</td>
-              <td className="px-4 py-2 text-right">{entry.totalBets}</td>
-              <td className="px-4 py-2 text-right">{entry.winRate.toFixed(1)}%</td>
-              <td className="px-4 py-2 text-right">{formatEther(entry.volume)} AVAX</td>
-              <td className="px-4 py-2 text-right text-green-600">
-                +{formatEther(entry.totalWinnings)} AVAX
-              </td>
-              <td className="px-4 py-2 text-right text-red-600">
-                -{formatEther(entry.totalLost)} AVAX
-              </td>
-              <td className={`px-4 py-2 text-right ${BigInt(entry.profitLoss) >= 0n ? 'text-green-600' : 'text-red-600'}`}>
-                {BigInt(entry.profitLoss) >= 0n ? '+' : ''}{formatEther(entry.profitLoss)} AVAX
-              </td>
-            </tr>
-          ))}
+          {sortedEntries.map((entry, index) => {
+            const wins = Number(entry.wins);
+            const losses = Number(entry.losses);
+            const winRate = wins + losses > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : '0.0';
+            const isCurrentUser = account?.toLowerCase() === entry.id.toLowerCase();
+
+            return (
+              <tr 
+                key={entry.id} 
+                className={`border-t border-gray-700 transition-colors ${
+                  isCurrentUser 
+                    ? 'bg-pog-orange/20 hover:bg-pog-orange/30' 
+                    : 'hover:bg-gray-800/30'
+                }`}
+              >
+                <td className="p-4">{index + 1}</td>
+                <td className={`p-4 font-mono ${isCurrentUser ? 'text-pog-orange' : ''}`}>
+                  {shortenAddress(entry.id)}
+                  {isCurrentUser && ' (You)'}
+                </td>
+                <td className="p-4 text-center">{entry.totalBets}</td>
+                <td className="p-4 text-center">{winRate}%</td>
+                <td className="p-4 text-center">{entry.totalStaked} AVAX</td>
+                <td className="p-4 text-center text-pog-orange">
+                  +{entry.totalWinnings} AVAX
+                </td>
+                <td className="p-4 text-center">{entry.bestStreak}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

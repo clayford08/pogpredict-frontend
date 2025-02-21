@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useWeb3 } from '@/components/Web3Provider';
 import { useContract } from '@/hooks/useContract';
 import { useReferral } from '@/hooks/useReferral';
+import { usePlaceBet } from '@/hooks/usePlaceBet';
 import { formatEther, parseEther } from '@/lib/utils';
-import { ref, get, set } from 'firebase/database';
-import { database } from '@/lib/firebase';
 
 interface Market {
   id: number;
@@ -24,7 +23,8 @@ interface TradingFormProps {
 
 const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete }) => {
   const { account, connect } = useWeb3();
-  const { placeBet, getPriceImpact } = useContract();
+  const { getPriceImpact } = useContract();
+  const { placeBet } = usePlaceBet();
   const { setReferrer, isValidReferrer } = useReferral();
   const [selectedOption, setSelectedOption] = useState<'A' | 'B'>('A');
   const [amount, setAmount] = useState('');
@@ -103,46 +103,10 @@ const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete
       const amountWei = parseEther(amount);
       const isOptionA = selectedOption === 'A';
 
-      const tx = await placeBet(market.id, isOptionA, { value: amountWei });
-
-      // Update Firebase
-      const userRef = ref(database, `leaderboard/${account.toLowerCase()}`);
-      const activityRef = ref(database, `activity/${account.toLowerCase()}/${tx.blockNumber}`);
-
-      // Get current stats
-      const statsSnapshot = await get(userRef);
-      const currentStats = statsSnapshot.val() || {
-        marketsParticipated: '0',
-        wins: '0',
-        losses: '0',
-        totalETHWon: '0',
-        lifetimeETHStaked: '0',
-        activeETHStaked: '0',
-        lastActiveTimestamp: '0',
-        currentStreak: '0',
-        bestStreak: '0',
-        largestWin: '0',
-        largestLoss: '0',
-        totalROI: '0'
-      };
-
-      // Update stats
-      await set(userRef, {
-        ...currentStats,
-        marketsParticipated: (Number(currentStats.marketsParticipated) + 1).toString(),
-        lifetimeETHStaked: (BigInt(currentStats.lifetimeETHStaked) + amountWei).toString(),
-        activeETHStaked: (BigInt(currentStats.activeETHStaked) + amountWei).toString(),
-        lastActiveTimestamp: Math.floor(Date.now() / 1000).toString()
-      });
-
-      // Add activity
-      await set(activityRef, {
-        type: 'bet',
-        marketId: market.id,
-        amount: amountWei.toString(),
-        timestamp: Math.floor(Date.now() / 1000),
-        txHash: tx.hash,
-        isOptionA
+      const tx = await placeBet({
+        marketId: market.id.toString(),
+        isOptionA,
+        amount: amountWei.toString()
       });
       
       setSuccess(`Successfully placed bet on option ${selectedOption}!`);

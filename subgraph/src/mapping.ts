@@ -14,7 +14,7 @@ import {
   MarketCreated,
   MarketResolved
 } from "../generated/PogPredict/PogPredict"
-import { User, Market, Bet, MonthlyStat, GlobalStat, PriceSnapshot } from "../generated/schema"
+import { User, Market, Bet, GlobalStat, PriceSnapshot } from "../generated/schema"
 
 function getOrCreateUser(address: Address): User {
   let user = User.load(address.toHexString())
@@ -55,28 +55,6 @@ function getOrCreateGlobalStats(): GlobalStat {
     global.save()
   }
   return global
-}
-
-function getOrCreateMonthlyStat(user: User, timestamp: BigInt): MonthlyStat {
-  let date = new Date(timestamp.toI32() * 1000)
-  let yearMonth = date.getUTCFullYear().toString() + "-" + 
-                 (date.getUTCMonth() + 1).toString().padStart(2, "0")
-  let id = user.id + "-" + yearMonth
-  
-  let monthlyStat = MonthlyStat.load(id)
-  if (!monthlyStat) {
-    monthlyStat = new MonthlyStat(id)
-    monthlyStat.user = user.id
-    monthlyStat.yearMonth = yearMonth
-    monthlyStat.wins = BigInt.fromI32(0)
-    monthlyStat.losses = BigInt.fromI32(0)
-    monthlyStat.winnings = BigInt.fromI32(0)
-    monthlyStat.staked = BigInt.fromI32(0)
-    monthlyStat.optionACount = BigInt.fromI32(0)
-    monthlyStat.optionBCount = BigInt.fromI32(0)
-    monthlyStat.save()
-  }
-  return monthlyStat
 }
 
 function createPriceSnapshot(
@@ -149,7 +127,7 @@ export function handleOptionBought(event: OptionBought): void {
     event.block.number
   )
 
-  // Create bet
+  // Create bet with simpler ID (without transaction hash)
   let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
   let bet = new Bet(betId)
   bet.user = user.id
@@ -158,17 +136,8 @@ export function handleOptionBought(event: OptionBought): void {
   bet.amount = event.params.amount
   bet.timestamp = event.params.timestamp
   bet.claimed = false
+  bet.outcome = 0 // 0 = unresolved
   bet.save()
-
-  // Update monthly stats
-  let monthlyStat = getOrCreateMonthlyStat(user, event.params.timestamp)
-  monthlyStat.staked = monthlyStat.staked.plus(event.params.amount)
-  if (event.params.isOptionA) {
-    monthlyStat.optionACount = monthlyStat.optionACount.plus(BigInt.fromI32(1))
-  } else {
-    monthlyStat.optionBCount = monthlyStat.optionBCount.plus(BigInt.fromI32(1))
-  }
-  monthlyStat.save()
 
   // Update global stats
   let global = getOrCreateGlobalStats()
@@ -180,19 +149,27 @@ export function handleOptionBought(event: OptionBought): void {
 
 export function handleUserWon(event: UserWon): void {
   let user = getOrCreateUser(event.params.user)
+  let market = Market.load(event.params.marketId.toString())
+  if (!market) return
+
+  // Find the bet by market and user
   let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
   let bet = Bet.load(betId)
   if (!bet) return
 
-  // Update user stats
-  user.wins = user.wins.plus(BigInt.fromI32(1))
-  user.totalWinnings = user.totalWinnings.plus(event.params.amount)
-  user.currentStreak = user.currentStreak.plus(BigInt.fromI32(1))
-  if (user.currentStreak.gt(user.bestStreak)) {
-    user.bestStreak = user.currentStreak
-  }
-  if (event.params.amount.gt(user.largestWin)) {
-    user.largestWin = event.params.amount
+  // Calculate net winnings (payout minus original stake)
+  let netWinnings = event.params.amount.minus(bet.amount)
+
+  // Update bet
+  bet.winnings = event.params.amount
+  bet.claimed = true
+  bet.save()
+
+  // Update user stats - only update winnings, not win count or streak
+  // since those are handled in handleMarketResolved
+  user.totalWinnings = user.totalWinnings.plus(netWinnings)
+  if (netWinnings.gt(user.largestWin)) {
+    user.largestWin = netWinnings
   }
   
   // Calculate ROI
@@ -205,36 +182,28 @@ export function handleUserWon(event: UserWon): void {
   }
   user.save()
 
-  // Update bet
-  bet.outcome = 1
-  bet.save()
-
-  // Update monthly stats
-  let monthlyStat = getOrCreateMonthlyStat(user, event.block.timestamp)
-  monthlyStat.wins = monthlyStat.wins.plus(BigInt.fromI32(1))
-  monthlyStat.winnings = monthlyStat.winnings.plus(event.params.amount)
-  monthlyStat.save()
-
   // Update global stats
   let global = getOrCreateGlobalStats()
-  global.totalWinnings = global.totalWinnings.plus(event.params.amount)
+  global.totalWinnings = global.totalWinnings.plus(netWinnings)
   global.lastUpdateTimestamp = event.block.timestamp
   global.save()
 }
 
 export function handleUserLost(event: UserLost): void {
   let user = getOrCreateUser(event.params.user)
+  let market = Market.load(event.params.marketId.toString())
+  if (!market) return
+
+  // Find the bet by market and user
   let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
   let bet = Bet.load(betId)
   if (!bet) return
 
-  // Update user stats
-  user.losses = user.losses.plus(BigInt.fromI32(1))
-  user.totalLost = user.totalLost.plus(event.params.amount)
-  user.currentStreak = BigInt.fromI32(0) // Reset streak on loss
-  if (event.params.amount.gt(user.largestLoss)) {
-    user.largestLoss = event.params.amount
-  }
+  // Update bet
+  bet.claimed = true
+  bet.save()
+
+  // No need to update user stats here as losses are handled in handleMarketResolved
   
   // Calculate ROI
   if (user.totalStaked.gt(BigInt.fromI32(0))) {
@@ -245,15 +214,6 @@ export function handleUserLost(event: UserLost): void {
       .div(BigDecimal.fromString("100"))
   }
   user.save()
-
-  // Update bet
-  bet.outcome = 2
-  bet.save()
-
-  // Update monthly stats
-  let monthlyStat = getOrCreateMonthlyStat(user, event.block.timestamp)
-  monthlyStat.losses = monthlyStat.losses.plus(BigInt.fromI32(1))
-  monthlyStat.save()
 }
 
 export function handleWinningsClaimed(event: WinningsClaimed): void {
@@ -261,9 +221,27 @@ export function handleWinningsClaimed(event: WinningsClaimed): void {
   let bet = Bet.load(betId)
   if (!bet) return
 
+  // Calculate net winnings (payout minus original stake)
+  let netWinnings = event.params.payout.minus(bet.amount)
+
   bet.claimed = true
   bet.winnings = event.params.payout
+  bet.outcome = 1 // 1 = won
   bet.save()
+
+  // Update user stats when winnings are claimed
+  let user = getOrCreateUser(event.params.user)
+  user.totalWinnings = user.totalWinnings.plus(netWinnings)
+  
+  // Calculate ROI
+  if (user.totalStaked.gt(BigInt.fromI32(0))) {
+    let netProfit = user.totalWinnings.minus(user.totalLost)
+    user.totalROI = netProfit.toBigDecimal()
+      .times(BigDecimal.fromString("10000"))
+      .div(user.totalStaked.toBigDecimal())
+      .div(BigDecimal.fromString("100"))
+  }
+  user.save()
 }
 
 export function handleMarketCreated(event: MarketCreated): void {
@@ -306,9 +284,52 @@ export function handleMarketResolved(event: MarketResolved): void {
   let market = Market.load(event.params.marketId.toString())
   if (!market) return
 
-  market.outcome = event.params.outcome.toI32()
+  market.outcome = event.params.outcome
   market.resolvedBy = event.params.resolvedBy
   market.resolutionDetails = event.params.details
   market.resolutionTimestamp = event.block.timestamp
   market.save()
+
+  // Load all bets for this market
+  let bets = market.bets.load()
+  for (let i = 0; i < bets.length; i++) {
+    let bet = bets[i]
+    if (!bet || bet.outcome != 0) continue // Skip if bet doesn't exist or already has an outcome
+
+    // Determine if the bet won or lost
+    let isWinner = (bet.isOptionA && event.params.outcome == 1) || (!bet.isOptionA && event.params.outcome == 2)
+    
+    // Update bet outcome
+    bet.outcome = isWinner ? 1 : 2
+    bet.save()
+
+    // Update user stats
+    let user = User.load(bet.user)
+    if (!user) continue
+
+    if (isWinner) {
+      user.wins = user.wins.plus(BigInt.fromI32(1))
+      user.currentStreak = user.currentStreak.plus(BigInt.fromI32(1))
+      if (user.currentStreak.gt(user.bestStreak)) {
+        user.bestStreak = user.currentStreak
+      }
+    } else {
+      user.losses = user.losses.plus(BigInt.fromI32(1))
+      user.totalLost = user.totalLost.plus(bet.amount)
+      user.currentStreak = BigInt.fromI32(0) // Reset streak on loss
+      if (bet.amount.gt(user.largestLoss)) {
+        user.largestLoss = bet.amount
+      }
+    }
+    
+    // Calculate ROI
+    if (user.totalStaked.gt(BigInt.fromI32(0))) {
+      let netProfit = user.totalWinnings.minus(user.totalLost)
+      user.totalROI = netProfit.toBigDecimal()
+        .times(BigDecimal.fromString("10000"))
+        .div(user.totalStaked.toBigDecimal())
+        .div(BigDecimal.fromString("100"))
+    }
+    user.save()
+  }
 } 

@@ -1,144 +1,104 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ethers } from 'ethers';
-import { AVALANCHE_TESTNET } from '../config/networks';
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain } from 'wagmi';
+import { metaMask } from 'wagmi/connectors';
+import { avalancheFuji } from 'wagmi/chains';
+import { BrowserProvider, JsonRpcSigner } from 'ethers';
 
 interface Web3ContextType {
   account: string | null;
-  provider: ethers.Provider | null;
-  signer: ethers.Signer | null;
+  signer: JsonRpcSigner | null;
   connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  isConnecting: boolean;
+  error: Error | null;
 }
 
 const Web3Context = createContext<Web3ContextType>({
   account: null,
-  provider: null,
   signer: null,
   connect: async () => {},
+  disconnect: async () => {},
+  isConnecting: false,
+  error: null,
 });
 
 export const useWeb3 = () => useContext(Web3Context);
 
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [account, setAccount] = useState<string | null>(null);
-  const [provider, setProvider] = useState<ethers.Provider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const { address, isConnected, chain } = useAccount();
+  const { connectAsync, isPending } = useConnect();
+  const { disconnectAsync } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
+  const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
-  const setupProvider = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      const provider = new ethers.BrowserProvider(window.ethereum, {
-        name: AVALANCHE_TESTNET.name,
-        chainId: AVALANCHE_TESTNET.id
-      });
-      
-      // Request network switch if needed
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${AVALANCHE_TESTNET.id.toString(16)}` }],
-        });
-      } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask.
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: `0x${AVALANCHE_TESTNET.id.toString(16)}`,
-                  chainName: AVALANCHE_TESTNET.name,
-                  nativeCurrency: AVALANCHE_TESTNET.nativeCurrency,
-                  rpcUrls: [AVALANCHE_TESTNET.rpcUrls.default],
-                  blockExplorerUrls: [AVALANCHE_TESTNET.blockExplorers.default.url],
-                },
-              ],
-            });
-          } catch (addError) {
-            console.error('Error adding chain:', addError);
+  useEffect(() => {
+    const initializeSigner = async () => {
+      if (walletClient) {
+        try {
+          // Check if we're on the right chain
+          if (chain?.id !== avalancheFuji.id) {
+            await switchChainAsync({ chainId: avalancheFuji.id });
           }
-        }
-      }
 
-      return provider;
-    }
-    return null;
-  };
+          const provider = new BrowserProvider(walletClient.transport, {
+            name: avalancheFuji.name,
+            chainId: avalancheFuji.id
+          });
+          const signer = await provider.getSigner();
+          setSigner(signer);
+          setError(null);
+        } catch (err) {
+          console.error('Error initializing signer:', err);
+          setError(err instanceof Error ? err : new Error('Failed to initialize wallet'));
+          setSigner(null);
+        }
+      } else {
+        setSigner(null);
+      }
+    };
+
+    initializeSigner();
+  }, [walletClient, chain?.id, switchChainAsync]);
 
   const connect = async () => {
     try {
-      const provider = await setupProvider();
-      if (!provider) {
-        console.log('Please install MetaMask!');
-        return;
-      }
-
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts && accounts.length > 0) {
-        const signer = await provider.getSigner();
-        setAccount(accounts[0]);
-        setProvider(provider);
-        setSigner(signer);
-      }
+      setError(null);
+      await connectAsync({ 
+        connector: metaMask(),
+        chainId: avalancheFuji.id
+      });
     } catch (err) {
-      console.error('Error connecting to MetaMask', err);
+      console.error('Error connecting to wallet:', err);
+      setError(err instanceof Error ? err : new Error('Failed to connect wallet'));
     }
   };
 
-  useEffect(() => {
-    // Check if already connected
-    if (typeof window.ethereum !== 'undefined') {
-      setupProvider().then(provider => {
-        if (provider) {
-          window.ethereum.request({ method: 'eth_accounts' })
-            .then(async (accounts: any) => {
-              if (accounts && accounts.length > 0) {
-                const signer = await provider.getSigner();
-                setAccount(accounts[0]);
-                setProvider(provider);
-                setSigner(signer);
-              }
-            })
-            .catch(console.error);
-
-          // Listen for account changes
-          window.ethereum.on('accountsChanged', async (accounts: any) => {
-            if (accounts && accounts.length > 0) {
-              const signer = await provider.getSigner();
-              setAccount(accounts[0]);
-              setProvider(provider);
-              setSigner(signer);
-            } else {
-              setAccount(null);
-              setProvider(null);
-              setSigner(null);
-            }
-          });
-
-          // Listen for chain changes
-          window.ethereum.on('chainChanged', () => {
-            window.location.reload();
-          });
-        }
-      });
+  const disconnect = async () => {
+    try {
+      await disconnectAsync();
+      setSigner(null);
+      setError(null);
+    } catch (err) {
+      console.error('Error disconnecting wallet:', err);
+      setError(err instanceof Error ? err : new Error('Failed to disconnect wallet'));
     }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', () => {});
-        window.ethereum.removeListener('chainChanged', () => {});
-      }
-    };
-  }, []);
+  };
 
   return (
-    <Web3Context.Provider value={{ account, provider, signer, connect }}>
+    <Web3Context.Provider 
+      value={{ 
+        account: isConnected ? address as string : null,
+        signer,
+        connect,
+        disconnect,
+        isConnecting: isPending,
+        error
+      }}
+    >
       {children}
     </Web3Context.Provider>
   );

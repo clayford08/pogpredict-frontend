@@ -1,0 +1,41 @@
+specVersion: 0.0.5
+schema:
+  file: schema.graphql
+features:
+  - fullTextSearch
+dataSources:
+  - kind: ethereum
+    name: PogPredict
+    network: fuji
+    source:
+      address: "0x6603ed335e0B7f4D907849864613cFc53cDEd16d"
+      abi: PogPredict
+      startBlock: 38008658
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - User
+        - Market
+        - Bet
+        - GlobalStat
+        - PriceSnapshot
+      abis:
+        - name: PogPredict
+          file: PogPredict/PogPredict.json
+      eventHandlers:
+        - event: OptionBought(indexed address,indexed uint256,bool,uint256,uint256)
+          handler: handleOptionBought
+        - event: UserWon(indexed address,indexed uint256,uint256)
+          handler: handleUserWon
+        - event: UserLost(indexed address,indexed uint256,uint256)
+          handler: handleUserLost
+        - event: WinningsClaimed(indexed address,indexed uint256,uint256,uint256)
+          handler: handleWinningsClaimed
+        - event: MarketCreated(indexed
+            uint256,string,string,string,string,string,string,uint256,uint256)
+          handler: handleMarketCreated
+        - event: MarketResolved(indexed uint256,uint8,uint8,string,address)
+          handler: handleMarketResolved
+      file: PogPredict/PogPredict.wasm

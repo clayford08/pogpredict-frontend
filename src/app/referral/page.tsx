@@ -439,18 +439,10 @@ export default function ReferralPage() {
 
             <div className="gradient-border p-6 bg-black/30">
               <h2 className="cyber-subtitle mb-4">Earnings Overview</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-gray-400">Total Earnings</div>
-                  <div className="text-2xl font-bold text-pog-orange glow-text">
-                    {formatBigInt(referralEarnings)} AVAX
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-400">Monthly Earnings</div>
-                  <div className="text-2xl font-bold text-white">
-                    {formatBigInt(referralEarnings ? referralEarnings / BigInt(12) : null)} AVAX
-                  </div>
+              <div>
+                <div className="text-sm text-gray-400">Total Earnings</div>
+                <div className="text-2xl font-bold text-pog-orange glow-text">
+                  {formatBigInt(referralEarnings)} AVAX
                 </div>
               </div>
             </div>

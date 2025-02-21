@@ -1,91 +1,72 @@
-import { useEffect, useState } from 'react';
-import { request, gql } from 'graphql-request';
+import { useQuery } from '@apollo/client';
+import { GET_LEADERBOARD } from '@/graphql/queries';
+import { formatAVAX } from '@/lib/utils';
 
-const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL || '';
+export type TimeFrame = 'all' | 'monthly' | 'weekly';
+export type SortBy = 'winnings' | 'streak';
 
-interface UserStats {
-  address: string;
-  totalBets: number;
-  wins: number;
-  losses: number;
+export interface LeaderboardEntry {
+  id: string;
+  totalBets: string;
+  wins: string;
+  losses: string;
   totalWinnings: string;
-  totalLost: string;
   totalStaked: string;
-  lastActiveTimestamp: string;
+  currentStreak: string;
+  bestStreak: string;
+  largestWin: string;
+  largestLoss: string;
 }
 
-interface LeaderboardEntry extends UserStats {
-  roi: number;
-  winRate: number;
+interface SubgraphUser {
+  id: string;
+  totalBets: string;
+  wins: string;
+  losses: string;
+  totalWinnings: string;
+  totalStaked: string;
+  currentStreak: string;
+  bestStreak: string;
+  largestWin: string;
+  largestLoss: string;
 }
 
-const LEADERBOARD_QUERY = gql`
-  query GetLeaderboard {
-    users(
+interface LeaderboardData {
+  users: SubgraphUser[];
+}
+
+export function useLeaderboard(timeframe: TimeFrame = 'all', sortBy: SortBy = 'winnings') {
+  const orderByMap: Record<SortBy, string> = {
+    winnings: 'totalWinnings',
+    streak: 'currentStreak'
+  };
+
+  const { data, loading, error } = useQuery<LeaderboardData>(GET_LEADERBOARD, {
+    variables: {
       first: 100,
-      orderBy: totalROI,
-      orderDirection: desc,
-      where: { totalBets_gt: 0 }
-    ) {
-      id
-      totalBets
-      wins
-      losses
-      totalWinnings
-      totalLost
-      totalStaked
-      lastActiveTimestamp
-      totalROI
-    }
-  }
-`;
+      skip: 0,
+      orderBy: orderByMap[sortBy]
+    },
+    pollInterval: 30000 // Poll every 30 seconds
+  });
 
-export function useLeaderboard() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Transform BigInt values to appropriate formats
+  const transformedEntries = data?.users?.map((user: SubgraphUser) => ({
+    id: user.id,
+    totalBets: user.totalBets.toString(),
+    wins: user.wins.toString(),
+    losses: user.losses.toString(),
+    totalWinnings: formatAVAX(user.totalWinnings),
+    totalStaked: formatAVAX(user.totalStaked),
+    currentStreak: user.currentStreak.toString(),
+    bestStreak: user.bestStreak.toString(),
+    largestWin: formatAVAX(user.largestWin),
+    largestLoss: formatAVAX(user.largestLoss)
+  })) || [];
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      if (!SUBGRAPH_URL) return;
-
-      try {
-        const { users } = await request(SUBGRAPH_URL, LEADERBOARD_QUERY);
-        
-        const entries: LeaderboardEntry[] = users.map((user: any) => {
-          const winRate = Number(user.totalBets) > 0
-            ? (Number(user.wins) / Number(user.totalBets)) * 100
-            : 0;
-
-          return {
-            address: user.id,
-            totalBets: Number(user.totalBets),
-            wins: Number(user.wins),
-            losses: Number(user.losses),
-            totalWinnings: user.totalWinnings,
-            totalLost: user.totalLost,
-            totalStaked: user.totalStaked,
-            lastActiveTimestamp: user.lastActiveTimestamp,
-            roi: Number(user.totalROI),
-            winRate
-          };
-        });
-
-        setLeaderboard(entries);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching leaderboard data:', err);
-        setError('Failed to load leaderboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 15000); // Poll every 15 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return { leaderboard, loading, error };
-} 
+  return {
+    entries: transformedEntries,
+    loading,
+    error: error?.message
+  };
+}

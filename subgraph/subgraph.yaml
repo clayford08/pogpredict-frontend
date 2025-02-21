@@ -1,14 +1,16 @@
 specVersion: 0.0.5
 schema:
   file: ./schema.graphql
+features:
+  - fullTextSearch
 dataSources:
   - kind: ethereum
     name: PogPredict
-    network: avalanche
+    network: fuji
     source:
-      address: "0x1234..." # Replace with actual contract address
+      address: "0x6603ed335e0B7f4D907849864613cFc53cDEd16d"
       abi: PogPredict
-      startBlock: 1234567 # Replace with contract deployment block
+      startBlock: 38008658
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -17,7 +19,8 @@ dataSources:
         - User
         - Market
         - Bet
-        - UserStat
+        - GlobalStat
+        - PriceSnapshot
       abis:
         - name: PogPredict
           file: ./abis/PogPredict.json

@@ -1,8 +1,97 @@
+type User @entity {
+  id: ID!
+  totalBets: BigInt!
+  wins: BigInt!
+  losses: BigInt!
+  totalWinnings: BigInt!
+  totalLost: BigInt!
+  totalStaked: BigInt!
+  lastActiveTimestamp: BigInt!
+  currentStreak: BigInt!
+  bestStreak: BigInt!
+  largestWin: BigInt!
+  largestLoss: BigInt!
+  totalROI: BigDecimal!
+  bets: [Bet!]! @derivedFrom(field: "user")
+  monthlyStats: [MonthlyStat!]! @derivedFrom(field: "user")
+}
+
+type Market @entity {
+  id: ID!
+  creator: User!
+  question: String!
+  optionA: String!
+  optionB: String!
+  category: String!
+  logoUrlA: String!
+  logoUrlB: String!
+  endTime: BigInt!
+  oracleMatchId: BigInt!
+  totalPoolA: BigInt!
+  totalPoolB: BigInt!
+  outcome: Int
+  resolvedBy: Bytes
+  resolutionDetails: String
+  resolutionTimestamp: BigInt
+  createdAt: BigInt!
+  currentPriceA: BigDecimal!
+  currentPriceB: BigDecimal!
+  priceHistory: [PriceSnapshot!]! @derivedFrom(field: "market")
+  bets: [Bet!]! @derivedFrom(field: "market")
+}
+
+type Bet @entity {
+  id: ID!
+  user: User!
+  market: Market!
+  isOptionA: Boolean!
+  amount: BigInt!
+  timestamp: BigInt!
+  claimed: Boolean!
+  winnings: BigInt
+  outcome: Int # 0 = unresolved, 1 = won, 2 = lost
+}
+
+type MonthlyStat @entity {
+  id: ID!
+  user: User!
+  yearMonth: String!
+  wins: BigInt!
+  losses: BigInt!
+  winnings: BigInt!
+  staked: BigInt!
+  optionACount: BigInt!
+  optionBCount: BigInt!
+}
+
+type GlobalStat @entity {
+  id: ID!
+  totalUsers: BigInt!
+  totalMarkets: BigInt!
+  totalBets: BigInt!
+  totalVolumeStaked: BigInt!
+  totalWinnings: BigInt!
+  averageROI: BigDecimal!
+  lastUpdateTimestamp: BigInt!
+}
+
+type PriceSnapshot @entity {
+  id: ID!
+  market: Market!
+  timestamp: BigInt!
+  priceA: BigDecimal!
+  priceB: BigDecimal!
+  totalPoolA: BigInt!
+  totalPoolB: BigInt!
+  blockNumber: BigInt!
+}
+
+# Event entities
 type ContractSettingUpdated @entity(immutable: true) {
   id: Bytes!
-  setting: String! # string
-  oldValue: BigInt! # uint256
-  newValue: BigInt! # uint256
+  setting: String!
+  oldValue: BigInt!
+  newValue: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -10,8 +99,8 @@ type ContractSettingUpdated @entity(immutable: true) {
 
 type FeeRecipientChanged @entity(immutable: true) {
   id: Bytes!
-  oldRecipient: Bytes! # address
-  newRecipient: Bytes! # address
+  oldRecipient: Bytes!
+  newRecipient: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -19,7 +108,7 @@ type FeeRecipientChanged @entity(immutable: true) {
 
 type ManualResolutionToggled @entity(immutable: true) {
   id: Bytes!
-  enabled: Boolean! # bool
+  enabled: Boolean!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -27,15 +116,15 @@ type ManualResolutionToggled @entity(immutable: true) {
 
 type MarketCreated @entity(immutable: true) {
   id: Bytes!
-  marketId: BigInt! # uint256
-  question: String! # string
-  optionA: String! # string
-  optionB: String! # string
-  category: String! # string
-  logoUrlA: String! # string
-  logoUrlB: String! # string
-  endTime: BigInt! # uint256
-  oracleMatchId: BigInt! # uint256
+  marketId: BigInt!
+  question: String!
+  optionA: String!
+  optionB: String!
+  category: String!
+  logoUrlA: String!
+  logoUrlB: String!
+  endTime: BigInt!
+  oracleMatchId: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -43,9 +132,9 @@ type MarketCreated @entity(immutable: true) {
 
 type MarketRefunded @entity(immutable: true) {
   id: Bytes!
-  marketId: BigInt! # uint256
-  reason: String! # string
-  resolvedBy: Bytes! # address
+  marketId: BigInt!
+  reason: String!
+  resolvedBy: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -53,11 +142,11 @@ type MarketRefunded @entity(immutable: true) {
 
 type MarketResolved @entity(immutable: true) {
   id: Bytes!
-  marketId: BigInt! # uint256
-  outcome: Int! # uint8
-  source: Int! # uint8
-  details: String! # string
-  resolvedBy: Bytes! # address
+  marketId: BigInt!
+  outcome: Int!
+  source: Int!
+  details: String!
+  resolvedBy: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -65,11 +154,11 @@ type MarketResolved @entity(immutable: true) {
 
 type OptionBought @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  isOptionA: Boolean! # bool
-  amount: BigInt! # uint256
-  timestamp: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  isOptionA: Boolean!
+  amount: BigInt!
+  timestamp: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -77,12 +166,12 @@ type OptionBought @entity(immutable: true) {
 
 type OptionSold @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  isOptionA: Boolean! # bool
-  amount: BigInt! # uint256
-  payout: BigInt! # uint256
-  timestamp: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  isOptionA: Boolean!
+  amount: BigInt!
+  payout: BigInt!
+  timestamp: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -90,8 +179,8 @@ type OptionSold @entity(immutable: true) {
 
 type OracleUpdaterChanged @entity(immutable: true) {
   id: Bytes!
-  oldUpdater: Bytes! # address
-  newUpdater: Bytes! # address
+  oldUpdater: Bytes!
+  newUpdater: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -99,8 +188,8 @@ type OracleUpdaterChanged @entity(immutable: true) {
 
 type OwnershipTransferStarted @entity(immutable: true) {
   id: Bytes!
-  previousOwner: Bytes! # address
-  newOwner: Bytes! # address
+  previousOwner: Bytes!
+  newOwner: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -108,8 +197,8 @@ type OwnershipTransferStarted @entity(immutable: true) {
 
 type OwnershipTransferred @entity(immutable: true) {
   id: Bytes!
-  previousOwner: Bytes! # address
-  newOwner: Bytes! # address
+  previousOwner: Bytes!
+  newOwner: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -117,7 +206,7 @@ type OwnershipTransferred @entity(immutable: true) {
 
 type Paused @entity(immutable: true) {
   id: Bytes!
-  account: Bytes! # address
+  account: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -125,9 +214,9 @@ type Paused @entity(immutable: true) {
 
 type PositionLost @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  amount: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  amount: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -135,9 +224,9 @@ type PositionLost @entity(immutable: true) {
 
 type PositionWon @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  amount: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  amount: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -145,10 +234,10 @@ type PositionWon @entity(immutable: true) {
 
 type ReferralFeeDistributed @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  referrer: Bytes! # address
-  amount: BigInt! # uint256
-  marketId: BigInt! # uint256
+  user: Bytes!
+  referrer: Bytes!
+  amount: BigInt!
+  marketId: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -156,9 +245,9 @@ type ReferralFeeDistributed @entity(immutable: true) {
 
 type RefundClaimed @entity(immutable: true) {
   id: Bytes!
-  marketId: BigInt! # uint256
-  user: Bytes! # address
-  amount: BigInt! # uint256
+  marketId: BigInt!
+  user: Bytes!
+  amount: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -166,7 +255,7 @@ type RefundClaimed @entity(immutable: true) {
 
 type Unpaused @entity(immutable: true) {
   id: Bytes!
-  account: Bytes! # address
+  account: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -174,9 +263,9 @@ type Unpaused @entity(immutable: true) {
 
 type UserLost @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  amount: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  amount: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -184,9 +273,9 @@ type UserLost @entity(immutable: true) {
 
 type UserWon @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  amount: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  amount: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
@@ -194,10 +283,10 @@ type UserWon @entity(immutable: true) {
 
 type WinningsClaimed @entity(immutable: true) {
   id: Bytes!
-  user: Bytes! # address
-  marketId: BigInt! # uint256
-  payout: BigInt! # uint256
-  timestamp: BigInt! # uint256
+  user: Bytes!
+  marketId: BigInt!
+  payout: BigInt!
+  timestamp: BigInt!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

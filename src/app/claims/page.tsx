@@ -5,29 +5,58 @@ import { useWeb3 } from '@/components/Web3Provider';
 import { useContract } from '@/hooks/useContract';
 import { formatEther } from '@/lib/utils';
 import Link from 'next/link';
+import { useQuery } from '@apollo/client';
+import { GET_CLAIMABLE_MARKETS } from '@/graphql/queries';
 
 interface ClaimableMarket {
   id: number;
   question: string;
   optionA: string;
   optionB: string;
-  winningAmount: bigint;
+  amount: bigint;
+  type: 'win' | 'refund';
 }
 
 interface SuccessMessage {
   marketId: number;
   amount: string;
   timestamp: number;
+  type: 'win' | 'refund';
+}
+
+interface SubgraphBet {
+  id: string;
+  market: {
+    id: string;
+    question: string;
+    optionA: string;
+    optionB: string;
+    outcome: string;
+    resolutionDetails: string;
+  };
+  isOptionA: boolean;
+  amount: string;
+  winnings: string | null;
+  claimed: boolean;
+}
+
+interface SubgraphResponse {
+  bets: SubgraphBet[];
 }
 
 export default function ClaimsPage() {
   const { account, connect } = useWeb3();
-  const { getMarket, getUserBalances, claimWinnings, getContract } = useContract();
-  const [claimableMarkets, setClaimableMarkets] = useState<ClaimableMarket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getContract, claimWinnings, claimRefund } = useContract();
   const [claiming, setClaiming] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<SuccessMessage | null>(null);
+
+  // Query claimable markets from the subgraph
+  const { data, loading, error: queryError, refetch } = useQuery<SubgraphResponse>(GET_CLAIMABLE_MARKETS, {
+    variables: { userAddress: account?.toLowerCase() },
+    skip: !account,
+    pollInterval: 10000 // Poll every 10 seconds to keep the list updated
+  });
 
   useEffect(() => {
     if (successMessage) {
@@ -38,62 +67,34 @@ export default function ClaimsPage() {
     }
   }, [successMessage]);
 
-  useEffect(() => {
-    const fetchClaimableMarkets = async () => {
-      if (!account) return;
-      
-      setLoading(true);
-      setError(null);
-      const markets: ClaimableMarket[] = [];
-
-      try {
-        const contract = await getContract();
-        if (!contract) {
-          throw new Error('Failed to get contract instance');
-        }
-
-        const marketCount = await contract.marketCount();
+  // Transform subgraph data into ClaimableMarket format
+  const claimableMarkets = React.useMemo(() => {
+    if (!data?.bets) return [];
+    
+    return data.bets
+      .filter((bet: SubgraphBet) => {
+        if (bet.claimed) return false;
         
-        for (let i = 0; i < Number(marketCount); i++) {
-          try {
-            const market = await getMarket(i);
-            if (!market || !market.resolved) continue;
+        const marketOutcome = Number(bet.market.outcome);
+        const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
+        const userWon = (bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2);
+        
+        return isRefunded || userWon;
+      })
+      .map((bet: SubgraphBet) => {
+        const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
+        return {
+          id: Number(bet.market.id),
+          question: bet.market.question,
+          optionA: bet.market.optionA,
+          optionB: bet.market.optionB,
+          amount: BigInt(bet.amount),
+          type: isRefunded ? 'refund' as const : 'win' as const
+        };
+      });
+  }, [data]);
 
-            const balances = await getUserBalances(i, account);
-            if (!balances) continue;
-
-            if (balances.optionA > 0n || balances.optionB > 0n) {
-              const winningAmount = market.outcome === '1' ? balances.optionA : balances.optionB;
-              
-              if (winningAmount > 0n) {
-                markets.push({
-                  id: i,
-                  question: market.question,
-                  optionA: market.optionA,
-                  optionB: market.optionB,
-                  winningAmount
-                });
-              }
-            }
-          } catch (err) {
-            // Silently continue if a single market fails
-            continue;
-          }
-        }
-
-        setClaimableMarkets(markets);
-      } catch (err) {
-        console.error('Error fetching claimable markets:', err);
-        setError('Failed to load claimable markets');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClaimableMarkets();
-  }, [account, getMarket, getUserBalances, getContract]);
-
-  const handleClaim = async (marketId: number) => {
+  const handleClaim = async (marketId: number, type: 'win' | 'refund') => {
     if (!account) return;
     
     setClaiming(marketId);
@@ -106,24 +107,31 @@ export default function ClaimsPage() {
         throw new Error('Failed to get contract instance');
       }
 
-      const market = claimableMarkets.find(m => m.id === marketId);
+      const market = claimableMarkets.find((m: ClaimableMarket) => m.id === marketId);
       if (!market) {
         throw new Error('Market not found');
       }
 
-      const tx = await contract.claimWinnings(marketId);
+      let tx;
+      if (type === 'win') {
+        tx = await contract.claimWinnings(marketId);
+      } else {
+        tx = await contract.claimRefund(marketId);
+      }
       await tx.wait();
       
       setSuccessMessage({
         marketId,
-        amount: formatEther(market.winningAmount),
-        timestamp: Date.now()
+        amount: formatEther(market.amount),
+        timestamp: Date.now(),
+        type
       });
 
-      setClaimableMarkets(prev => prev.filter(m => m.id !== marketId));
+      // Refetch the data to update the list
+      refetch();
     } catch (err: any) {
-      console.error('Error claiming winnings:', err);
-      setError(err.message || 'Failed to claim winnings');
+      console.error('Error claiming:', err);
+      setError(err.message || 'Failed to claim');
     } finally {
       setClaiming(null);
     }
@@ -157,10 +165,20 @@ export default function ClaimsPage() {
     );
   }
 
+  if (queryError) {
+    return (
+      <div className="container mx-auto px-4 py-8 min-h-screen">
+        <div className="cyber-card bg-red-900/20 border-red-500/20">
+          <p className="text-red-500">Failed to load claimable markets</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <h1 className="cyber-title mb-8 text-center">Claimable Winnings</h1>
+        <h1 className="cyber-title mb-8 text-center">Claimable Markets</h1>
         
         {error && (
           <div className="cyber-card bg-red-900/20 border-red-500/20 mb-6">
@@ -179,7 +197,8 @@ export default function ClaimsPage() {
               <div>
                 <p className="text-green-500 font-semibold">Claim Successful!</p>
                 <p className="text-sm text-green-400">
-                  You claimed {successMessage.amount} AVAX
+                  You claimed {successMessage.amount} AVAX 
+                  {successMessage.type === 'refund' ? ' (Refund)' : ' (Winnings)'}
                 </p>
               </div>
             </div>
@@ -188,11 +207,11 @@ export default function ClaimsPage() {
 
         {claimableMarkets.length === 0 ? (
           <div className="cyber-card text-center">
-            <p className="text-gray-400">No winnings to claim at this time.</p>
+            <p className="text-gray-400">No claimable markets at this time.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {claimableMarkets.map((market) => (
+            {claimableMarkets.map((market: ClaimableMarket) => (
               <div key={market.id} className="cyber-card hover:scale-[1.02] transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -206,15 +225,15 @@ export default function ClaimsPage() {
                       {market.optionA} vs {market.optionB}
                     </div>
                     <div className="text-pog-orange mt-2">
-                      Winnings: {formatEther(market.winningAmount)} AVAX
+                      {market.type === 'refund' ? 'Refund' : 'Winnings'}: {formatEther(market.amount)} AVAX
                     </div>
                   </div>
                   <button
-                    onClick={() => handleClaim(market.id)}
+                    onClick={() => handleClaim(market.id, market.type)}
                     disabled={claiming === market.id}
-                    className="cyber-button ml-4"
+                    className={`cyber-button ml-4 ${market.type === 'refund' ? 'bg-blue-600' : ''}`}
                   >
-                    {claiming === market.id ? 'Claiming...' : 'Claim'}
+                    {claiming === market.id ? 'Claiming...' : `Claim ${market.type === 'refund' ? 'Refund' : 'Winnings'}`}
                   </button>
                 </div>
               </div>

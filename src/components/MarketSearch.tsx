@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Filter, SortDesc } from 'lucide-react';
+import { Search, Filter, SortDesc, Gamepad2 } from 'lucide-react';
 
 interface MarketSearchProps {
   searchQuery: string;
@@ -10,16 +10,19 @@ interface MarketSearchProps {
   setSelectedCategory: (category: string) => void;
   selectedStatus: string;
   setSelectedStatus: (status: string) => void;
+  selectedEsport: string;
+  setSelectedEsport: (esport: string) => void;
   sortBy: string;
   setSortBy: (sort: string) => void;
   categories: string[];
 }
 
-const statuses = ['All', 'ACTIVE', 'ENDED'];
-const sortOptions = [
+const ESPORTS = ['All', 'CS2', 'Dota 2', 'Valorant', 'League of Legends', 'Marvel Rivals'];
+const STATUSES = ['All', 'ACTIVE', 'CLOSED', 'RESOLVED'];
+const SORT_OPTIONS = [
   { value: 'endTime', label: 'End Time' },
   { value: 'poolSize', label: 'Pool Size' },
-  { value: 'newest', label: 'Newest First' },
+  { value: 'newest', label: 'Newest' },
 ];
 
 export default function MarketSearch({
@@ -29,111 +32,139 @@ export default function MarketSearch({
   setSelectedCategory,
   selectedStatus,
   setSelectedStatus,
+  selectedEsport,
+  setSelectedEsport,
   sortBy,
   setSortBy,
   categories,
 }: MarketSearchProps) {
   return (
-    <div className="mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        {/* Search Input */}
-        <div className="cyber-card flex items-center group relative">
-          <Search className="w-5 h-5 mr-2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search markets, teams, or tournaments..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent border-none focus:outline-none text-white"
-          />
-          <div className="absolute hidden group-hover:block bg-gray-900 text-white p-2 rounded-md text-sm -bottom-12 left-0 right-0 z-10">
-            Search by team names, match details, or tournament names
+    <div className="mb-6 space-y-4">
+      <div className="flex flex-wrap gap-4">
+        {/* Search input */}
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search markets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+            />
           </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="cyber-card flex items-center">
-          <Filter className="w-5 h-5 mr-2 text-gray-400" />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full bg-transparent border-none focus:outline-none text-white appearance-none cursor-pointer"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category} className="bg-gray-900">
-                {category}
-              </option>
-            ))}
-          </select>
+        {/* Esport filter */}
+        <div className="min-w-[150px]">
+          <div className="relative">
+            <Gamepad2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <select
+              value={selectedEsport}
+              onChange={(e) => setSelectedEsport(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg appearance-none focus:outline-none focus:border-blue-500"
+            >
+              {ESPORTS.map((esport) => (
+                <option key={esport} value={esport}>
+                  {esport}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Status Filter */}
-        <div className="cyber-card flex items-center">
-          <Filter className="w-5 h-5 mr-2 text-gray-400" />
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full bg-transparent border-none focus:outline-none text-white appearance-none cursor-pointer"
-          >
-            {statuses.map((status) => (
-              <option key={status} value={status} className="bg-gray-900">
-                {status}
-              </option>
-            ))}
-          </select>
+        {/* Category filter */}
+        <div className="min-w-[150px]">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg appearance-none focus:outline-none focus:border-blue-500"
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Sort Options */}
-        <div className="cyber-card flex items-center">
-          <SortDesc className="w-5 h-5 mr-2 text-gray-400" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full bg-transparent border-none focus:outline-none text-white appearance-none cursor-pointer"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value} className="bg-gray-900">
-                {option.label}
-              </option>
-            ))}
-          </select>
+        {/* Status filter */}
+        <div className="min-w-[150px]">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg appearance-none focus:outline-none focus:border-blue-500"
+            >
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Sort options */}
+        <div className="min-w-[150px]">
+          <div className="relative">
+            <SortDesc className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg appearance-none focus:outline-none focus:border-blue-500"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Active Filters */}
+      {/* Active filters */}
       <div className="flex flex-wrap gap-2">
         {searchQuery && (
-          <span className="cyber-pill">
+          <button
+            onClick={() => setSearchQuery('')}
+            className="px-3 py-1 bg-gray-700 rounded-full text-sm flex items-center gap-2"
+          >
             Search: {searchQuery}
-            <button
-              onClick={() => setSearchQuery('')}
-              className="ml-2 text-gray-400 hover:text-white"
-            >
-              ×
-            </button>
-          </span>
+            <span className="text-gray-400">×</span>
+          </button>
+        )}
+        {selectedEsport !== 'All' && (
+          <button
+            onClick={() => setSelectedEsport('All')}
+            className="px-3 py-1 bg-gray-700 rounded-full text-sm flex items-center gap-2"
+          >
+            Esport: {selectedEsport}
+            <span className="text-gray-400">×</span>
+          </button>
         )}
         {selectedCategory !== 'All' && (
-          <span className="cyber-pill">
-            Tournament: {selectedCategory}
-            <button
-              onClick={() => setSelectedCategory('All')}
-              className="ml-2 text-gray-400 hover:text-white"
-            >
-              ×
-            </button>
-          </span>
+          <button
+            onClick={() => setSelectedCategory('All')}
+            className="px-3 py-1 bg-gray-700 rounded-full text-sm flex items-center gap-2"
+          >
+            Category: {selectedCategory}
+            <span className="text-gray-400">×</span>
+          </button>
         )}
         {selectedStatus !== 'All' && (
-          <span className="cyber-pill">
+          <button
+            onClick={() => setSelectedStatus('All')}
+            className="px-3 py-1 bg-gray-700 rounded-full text-sm flex items-center gap-2"
+          >
             Status: {selectedStatus}
-            <button
-              onClick={() => setSelectedStatus('All')}
-              className="ml-2 text-gray-400 hover:text-white"
-            >
-              ×
-            </button>
-          </span>
+            <span className="text-gray-400">×</span>
+          </button>
         )}
       </div>
     </div>

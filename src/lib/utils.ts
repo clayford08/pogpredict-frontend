@@ -50,3 +50,16 @@ export function isDeployerAddress(address: string | null): boolean {
   if (!address) return false;
   return address.toLowerCase() === process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS?.toLowerCase();
 }
+
+export function formatAVAX(value: string | bigint): string {
+  if (!value) return '0.00';
+  
+  // If the value is already in ether format (contains a decimal point)
+  if (typeof value === 'string' && value.includes('.')) {
+    return Number(value).toFixed(2);
+  }
+  
+  // Otherwise, convert from wei to ether first
+  const etherValue = formatEther(value);
+  return Number(etherValue).toFixed(2);
+}

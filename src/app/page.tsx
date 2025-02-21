@@ -3,96 +3,71 @@
 import React from 'react';
 import Link from 'next/link';
 import MarketCard from '@/components/MarketCard';
-import { useContract, ContractMarket } from '@/hooks/useContract';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@apollo/client';
+import { GET_MARKETS } from '@/graphql/queries';
+import { useState } from 'react';
 
 const FEATURED_MARKET_COUNT = 3; // Show only 3 featured markets in rotation
 
+interface Market {
+  id: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  category: string;
+  logoUrlA: string;
+  logoUrlB: string;
+  endTime: string;
+  totalPoolA: string;
+  totalPoolB: string;
+  currentPriceA: string;
+  currentPriceB: string;
+  createdAt: string;
+}
+
 export default function Home() {
-  const { getMarket, getMarketCount } = useContract();
-  type ExtendedMarket = Omit<ContractMarket, 'endTime'> & {
-    id: number;
-    endTime: number;
-    status: string;
-    totalPool: bigint;
-  };
-
-  const [markets, setMarkets] = useState<ExtendedMarket[]>([]);
   const [currentMarketIndex, setCurrentMarketIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Time threshold for showing resolved markets (7 days in milliseconds)
-  const RESOLVED_MARKET_THRESHOLD = 7 * 24 * 60 * 60 * 1000;
+  // Fetch markets using GraphQL
+  const { data, loading, error } = useQuery(GET_MARKETS, {
+    variables: {
+      first: 100,
+      skip: 0,
+      orderBy: 'totalPoolA',
+      orderDirection: 'desc'
+    },
+    pollInterval: 30000 // Poll every 30 seconds
+  });
 
-  useEffect(() => {
-    const fetchMarkets = async () => {
-      try {
-        setError(null);
-        
-        // Get total number of markets
-        const totalMarkets = await getMarketCount();
-        if (totalMarkets === 0) {
-          setMarkets([]);
-          return;
-        }
+  // Filter and process markets
+  const featuredMarkets = React.useMemo(() => {
+    if (!data?.markets) return [];
+    
+    const currentTime = Date.now();
+    return data.markets
+      .filter((market: Market) => {
+        const endTimeMs = Number(market.endTime) * 1000;
+        return endTimeMs > currentTime; // Only show active markets
+      })
+      .sort((a: Market, b: Market) => {
+        // Sort by total pool size
+        const poolA = Number(a.totalPoolA) + Number(a.totalPoolB);
+        const poolB = Number(b.totalPoolA) + Number(b.totalPoolB);
+        return poolB - poolA;
+      })
+      .slice(0, FEATURED_MARKET_COUNT); // Take only the top 3 markets
+  }, [data?.markets]);
 
-        // Get all markets for pool size comparison
-        const marketPromises = Array.from({ length: totalMarkets }, (_, i) => 
-          getMarket(i)
-            .then(market => market ? ({
-              ...market,
-              id: i,
-              question: market.question.replace(/^Match\s*\d*\s*:?\s*/i, ''), // Clean the question
-              endTime: Number(market.endTime),
-              status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
-              totalPool: BigInt(market.totalOptionA) + BigInt(market.totalOptionB) // Calculate total pool
-            }) : null)
-            .catch(() => null) // Handle individual market fetch failures gracefully
-        );
-
-        // Fetch all markets in parallel
-        const fetchedMarkets = await Promise.all(marketPromises);
-        
-        // Filter out null results, resolved old markets, and sort by total pool size
-        const currentTime = Date.now();
-        const validMarkets = fetchedMarkets
-          .filter((market): market is ExtendedMarket => 
-            market !== null && 
-            // Only show active markets (end time is in the future and not resolved)
-            Number(market.endTime) * 1000 > currentTime &&
-            !market.resolved
-          )
-          .sort((a, b) => {
-            // Sort by total pool size in descending order
-            const poolA = a.totalPool;
-            const poolB = b.totalPool;
-            return poolB > poolA ? 1 : poolB < poolA ? -1 : 0;
-          })
-          .slice(0, FEATURED_MARKET_COUNT); // Take only the top 3 markets
-
-        setMarkets(validMarkets);
-      } catch (error) {
-        console.error('Error fetching markets:', error);
-        setError('Failed to load markets. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMarkets();
-  }, [getMarket, getMarketCount]);
-
-  // Auto-rotate markets every 12 seconds instead of 5
-  useEffect(() => {
-    if (markets.length === 0) return;
+  // Auto-rotate markets every 12 seconds
+  React.useEffect(() => {
+    if (featuredMarkets.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentMarketIndex((prevIndex) => (prevIndex + 1) % markets.length);
+      setCurrentMarketIndex((prevIndex) => (prevIndex + 1) % featuredMarkets.length);
     }, 12000);
 
     return () => clearInterval(interval);
-  }, [markets.length]);
+  }, [featuredMarkets.length]);
 
   if (loading) {
     return (
@@ -106,7 +81,7 @@ export default function Home() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="cyber-card text-center">
-          <div className="text-red-500 mb-4">{error}</div>
+          <div className="text-red-500 mb-4">{error.message}</div>
           <button 
             onClick={() => window.location.reload()} 
             className="cyber-button"
@@ -138,24 +113,38 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        {markets.length > 0 ? (
+        {featuredMarkets.length > 0 ? (
           <div className="relative overflow-hidden">
             <div 
               className="flex transition-transform duration-1000 ease-in-out"
               style={{ 
-                transform: `translateX(-${currentMarketIndex * (100 / markets.length)}%)`,
+                transform: `translateX(-${currentMarketIndex * (100 / featuredMarkets.length)}%)`,
                 width: '300%',
                 display: 'flex',
                 flexDirection: 'row',
                 flexWrap: 'nowrap'
               }}
             >
-              {markets.map((market) => (
-                <div key={market.id} style={{ width: `${100 / markets.length}%` }} className="flex-shrink-0">
+              {featuredMarkets.map((market: Market) => (
+                <div key={market.id} style={{ width: `${100 / featuredMarkets.length}%` }} className="flex-shrink-0">
                   <div className="px-4">
                     <div className="w-full max-w-4xl mx-auto">
                       <div className="transform scale-110">
-                        <MarketCard market={market} />
+                        <MarketCard 
+                          market={{
+                            id: Number(market.id),
+                            question: market.question,
+                            optionA: market.optionA,
+                            optionB: market.optionB,
+                            category: market.category,
+                            logoUrlA: market.logoUrlA,
+                            logoUrlB: market.logoUrlB,
+                            endTime: Number(market.endTime),
+                            status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
+                            totalOptionA: market.totalPoolA,
+                            totalOptionB: market.totalPoolB
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -163,7 +152,7 @@ export default function Home() {
               ))}
             </div>
             <div className="flex justify-center mt-8 gap-3">
-              {markets.map((_, index) => (
+              {featuredMarkets.map((_: Market, index: number) => (
                 <button
                   key={index}
                   className={`w-3 h-3 rounded-full transition-all ${
