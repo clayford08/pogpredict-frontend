@@ -114,54 +114,50 @@ export default function Home() {
           </div>
         </div>
         {featuredMarkets.length > 0 ? (
-          <div className="relative overflow-hidden">
-            <div 
-              className="flex transition-transform duration-1000 ease-in-out"
-              style={{ 
-                transform: `translateX(-${currentMarketIndex * (100 / featuredMarkets.length)}%)`,
-                width: '300%',
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'nowrap'
-              }}
-            >
-              {featuredMarkets.map((market: Market) => (
-                <div key={market.id} style={{ width: `${100 / featuredMarkets.length}%` }} className="flex-shrink-0">
-                  <div className="px-4">
-                    <div className="w-full max-w-4xl mx-auto">
-                      <div className="transform scale-110">
-                        <MarketCard 
-                          market={{
-                            id: Number(market.id),
-                            question: market.question,
-                            optionA: market.optionA,
-                            optionB: market.optionB,
-                            category: market.category,
-                            logoUrlA: market.logoUrlA,
-                            logoUrlB: market.logoUrlB,
-                            endTime: Number(market.endTime),
-                            status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
-                            totalOptionA: market.totalPoolA,
-                            totalOptionB: market.totalPoolB
-                          }}
-                        />
-                      </div>
-                    </div>
+          <div className="relative overflow-hidden max-w-4xl mx-auto">
+            <div className="relative" style={{ height: '400px' }}>
+              {featuredMarkets.map((market: Market, index: number) => (
+                <div 
+                  key={market.id} 
+                  className="absolute top-0 left-0 w-full transition-transform duration-1000 ease-in-out"
+                  style={{ 
+                    transform: `translateX(${(index - currentMarketIndex) * 100}%)`,
+                    padding: '0 1rem'
+                  }}
+                >
+                  <div className="w-full mx-auto">
+                    <MarketCard 
+                      market={{
+                        id: Number(market.id),
+                        question: market.question,
+                        optionA: market.optionA,
+                        optionB: market.optionB,
+                        category: market.category,
+                        logoUrlA: market.logoUrlA,
+                        logoUrlB: market.logoUrlB,
+                        endTime: Number(market.endTime),
+                        status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
+                        totalOptionA: market.totalPoolA,
+                        totalOptionB: market.totalPoolB
+                      }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-center mt-8 gap-3">
-              {featuredMarkets.map((_: Market, index: number) => (
-                <button
-                  key={index}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    index === currentMarketIndex ? 'bg-pog-orange w-6' : 'bg-gray-600'
-                  }`}
-                  onClick={() => setCurrentMarketIndex(index)}
-                />
-              ))}
-            </div>
+            {featuredMarkets.length > 1 && (
+              <div className="flex justify-center mt-8 gap-3">
+                {featuredMarkets.map((_: Market, index: number) => (
+                  <button
+                    key={index}
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      index === currentMarketIndex ? 'bg-pog-orange w-6' : 'bg-gray-600'
+                    }`}
+                    onClick={() => setCurrentMarketIndex(index)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="cyber-card text-center py-8">
