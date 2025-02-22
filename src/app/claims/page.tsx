@@ -14,6 +14,7 @@ interface ClaimableMarket {
   optionA: string;
   optionB: string;
   amount: bigint;
+  winnings: bigint | null;
   type: 'win' | 'refund' | 'loss';
   resolutionTimestamp: number;
 }
@@ -35,11 +36,14 @@ interface SubgraphBet {
     outcome: string;
     resolutionDetails: string;
     resolutionTimestamp: string;
+    totalPoolA: string;
+    totalPoolB: string;
   };
   isOptionA: boolean;
   amount: string;
   winnings: string | null;
   claimed: boolean;
+  outcome: string | null; // 0 = unresolved, 1 = won, 2 = lost, 3 = refundable
 }
 
 interface SubgraphResponse {
@@ -77,26 +81,44 @@ export default function ClaimsPage() {
       .filter((bet: SubgraphBet) => {
         if (bet.claimed) return false;
         
-        const marketOutcome = Number(bet.market.outcome);
+        const marketOutcome = Number(bet.market.outcome || 0);
         const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
-        const userWon = (bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2);
+        const userWon = !isRefunded && marketOutcome > 0 && ((bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2));
         const hasResolutionTimestamp = Number(bet.market.resolutionTimestamp || 0) > 0;
+        const betOutcome = Number(bet.outcome || 0);
         
-        // Only show markets that are properly resolved and either refunded or won
-        return hasResolutionTimestamp && (isRefunded || userWon);
+        // Show markets that are either refundable (outcome = 3) or won (outcome = 1)
+        return hasResolutionTimestamp && !bet.claimed && (betOutcome === 3 || (betOutcome === 1 && userWon));
       })
       .map((bet: SubgraphBet) => {
-        const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
-        const marketOutcome = Number(bet.market.outcome);
-        const userWon = (bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2);
+        const betOutcome = Number(bet.outcome || 0);
+        const isRefundable = betOutcome === 3;
+        const betAmount = BigInt(bet.amount);
         
+        // For refunds, winnings is the original bet amount
+        // For wins, winnings is the total payout minus the original bet amount
+        let winnings: bigint | null = null;
+        if (isRefundable) {
+          winnings = betAmount;
+        } else if (bet.market.totalPoolA && bet.market.totalPoolB) {
+          const totalPool = BigInt(bet.market.totalPoolA) + BigInt(bet.market.totalPoolB);
+          const winningPool = bet.isOptionA ? BigInt(bet.market.totalPoolA) : BigInt(bet.market.totalPoolB);
+          if (totalPool > 0n && winningPool > 0n) {
+            // Calculate total payout
+            const totalPayout = (betAmount * totalPool) / winningPool;
+            // Net winnings is total payout minus original bet
+            winnings = totalPayout - betAmount;
+          }
+        }
+
         return {
           id: Number(bet.market.id),
           question: bet.market.question,
           optionA: bet.market.optionA,
           optionB: bet.market.optionB,
-          amount: BigInt(bet.amount),
-          type: isRefunded ? 'refund' as const : userWon ? 'win' as const : 'loss' as const,
+          amount: betAmount,
+          winnings,
+          type: isRefundable ? 'refund' as const : 'win' as const,
           resolutionTimestamp: Number(bet.market.resolutionTimestamp || 0)
         };
       })
@@ -245,7 +267,7 @@ export default function ClaimsPage() {
                       {market.optionA} vs {market.optionB}
                     </div>
                     <div className="text-pog-orange mt-2">
-                      {market.type === 'refund' ? 'Refund' : market.type === 'win' ? 'Winnings' : 'Loss'}: {formatEther(market.amount)} AVAX
+                      {market.type === 'refund' ? 'Refund' : 'Winnings'}: {formatEther(market.winnings || 0n)} AVAX
                     </div>
                   </div>
                   <button
