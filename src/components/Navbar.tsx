@@ -90,6 +90,16 @@ const Navbar = () => {
               >
                 Claims
               </Link>
+              <Link 
+                href="/docs" 
+                className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                  isActive('/docs')
+                    ? 'bg-pog-orange text-white shadow-lg shadow-pog-orange/20'
+                    : 'text-gray-300 hover:text-pog-orange hover:bg-pog-orange/10'
+                }`}
+              >
+                Docs
+              </Link>
             </div>
           </div>
 
@@ -201,6 +211,17 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               Claims
+            </Link>
+            <Link 
+              href="/docs" 
+              className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                isActive('/docs')
+                  ? 'bg-pog-orange text-white shadow-lg shadow-pog-orange/20'
+                  : 'text-gray-300 hover:text-pog-orange hover:bg-pog-orange/10'
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Docs
             </Link>
             {account ? (
               <>
