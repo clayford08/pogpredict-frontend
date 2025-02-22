@@ -80,8 +80,10 @@ export default function ClaimsPage() {
         const marketOutcome = Number(bet.market.outcome);
         const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
         const userWon = (bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2);
+        const hasResolutionTimestamp = Number(bet.market.resolutionTimestamp || 0) > 0;
         
-        return isRefunded || userWon;
+        // Only show markets that are properly resolved and either refunded or won
+        return hasResolutionTimestamp && (isRefunded || userWon);
       })
       .map((bet: SubgraphBet) => {
         const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
@@ -120,25 +122,36 @@ export default function ClaimsPage() {
       }
 
       let tx;
-      if (type === 'win') {
-        tx = await contract.claimWinnings(marketId);
-      } else {
-        tx = await contract.claimRefund(marketId);
-      }
-      await tx.wait();
-      
-      setSuccessMessage({
-        marketId,
-        amount: formatEther(market.amount),
-        timestamp: Date.now(),
-        type
-      });
+      try {
+        if (type === 'win') {
+          tx = await contract.claimWinnings(marketId);
+        } else {
+          tx = await contract.claimRefund(marketId);
+        }
+        await tx.wait();
+        
+        setSuccessMessage({
+          marketId,
+          amount: formatEther(market.amount),
+          timestamp: Date.now(),
+          type
+        });
 
-      // Refetch the data to update the list
-      refetch();
+        // Refetch the data to update the list
+        refetch();
+      } catch (err: any) {
+        if (err.reason) {
+          setError(`Failed to claim: ${err.reason}`);
+        } else if (err.message && err.message.includes('user rejected transaction')) {
+          setError('Transaction was rejected');
+        } else {
+          setError('Failed to claim. Please try again later.');
+        }
+        console.error('Claim error:', err);
+      }
     } catch (err: any) {
-      console.error('Error claiming:', err);
-      setError(err.message || 'Failed to claim');
+      console.error('Contract error:', err);
+      setError(err.message || 'Failed to get contract');
     } finally {
       setClaiming(null);
     }
