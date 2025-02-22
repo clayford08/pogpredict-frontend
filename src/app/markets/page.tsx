@@ -20,6 +20,10 @@ interface Market {
   currentPriceA: string;
   currentPriceB: string;
   createdAt: string;
+  outcome: string | null;
+  resolvedBy: string | null;
+  resolutionDetails: string | null;
+  resolutionTimestamp: string | null;
 }
 
 interface MarketCardProps {
@@ -73,7 +77,8 @@ export default function MarketsPage() {
     
     return data.markets.filter((market: Market) => {
       const endTimeNum = Number(market.endTime) * 1000;
-      const status = endTimeNum > Date.now() ? 'ACTIVE' : 'ENDED';
+      const isResolved = market.outcome !== null;
+      const status = isResolved ? 'RESOLVED' : endTimeNum > Date.now() ? 'ACTIVE' : 'ENDED';
 
       const matchesSearch = searchQuery === '' || 
         market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||

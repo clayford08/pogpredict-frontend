@@ -18,7 +18,7 @@ interface MarketSearchProps {
 }
 
 const ESPORTS = ['All', 'CS2', 'Dota 2', 'Valorant', 'League of Legends', 'Marvel Rivals'];
-const STATUSES = ['All', 'ACTIVE', 'CLOSED', 'RESOLVED'];
+const STATUSES = ['All', 'ACTIVE', 'ENDED', 'RESOLVED'];
 const SORT_OPTIONS = [
   { value: 'endTime', label: 'End Time' },
   { value: 'poolSize', label: 'Pool Size' },

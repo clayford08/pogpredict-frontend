@@ -79,7 +79,6 @@ export const GET_MARKETS = gql`
       skip: $skip
       orderBy: $orderBy
       orderDirection: $orderDirection
-      where: { outcome: null }
     ) {
       id
       question
@@ -94,6 +93,10 @@ export const GET_MARKETS = gql`
       currentPriceA
       currentPriceB
       createdAt
+      outcome
+      resolvedBy
+      resolutionDetails
+      resolutionTimestamp
     }
   }
 `;
@@ -139,7 +142,10 @@ export const GET_CLAIMABLE_MARKETS = gql`
       where: { 
         user: $userAddress,
         claimed: false,
-        market_: { outcome_not: null }
+        market_: { 
+          outcome_not: null,
+          resolutionTimestamp_gt: 0
+        }
       }
     ) {
       id
@@ -150,10 +156,13 @@ export const GET_CLAIMABLE_MARKETS = gql`
         optionB
         outcome
         resolutionDetails
+        resolutionTimestamp
       }
       isOptionA
       amount
       winnings
+      claimed
+      outcome
     }
   }
 `;

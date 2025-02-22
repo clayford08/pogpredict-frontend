@@ -14,7 +14,8 @@ interface ClaimableMarket {
   optionA: string;
   optionB: string;
   amount: bigint;
-  type: 'win' | 'refund';
+  type: 'win' | 'refund' | 'loss';
+  resolutionTimestamp: number;
 }
 
 interface SuccessMessage {
@@ -33,6 +34,7 @@ interface SubgraphBet {
     optionB: string;
     outcome: string;
     resolutionDetails: string;
+    resolutionTimestamp: string;
   };
   isOptionA: boolean;
   amount: string;
@@ -83,15 +85,20 @@ export default function ClaimsPage() {
       })
       .map((bet: SubgraphBet) => {
         const isRefunded = bet.market.resolutionDetails?.toLowerCase().includes('refund');
+        const marketOutcome = Number(bet.market.outcome);
+        const userWon = (bet.isOptionA && marketOutcome === 1) || (!bet.isOptionA && marketOutcome === 2);
+        
         return {
           id: Number(bet.market.id),
           question: bet.market.question,
           optionA: bet.market.optionA,
           optionB: bet.market.optionB,
           amount: BigInt(bet.amount),
-          type: isRefunded ? 'refund' as const : 'win' as const
+          type: isRefunded ? 'refund' as const : userWon ? 'win' as const : 'loss' as const,
+          resolutionTimestamp: Number(bet.market.resolutionTimestamp || 0)
         };
-      });
+      })
+      .sort((a, b) => b.resolutionTimestamp - a.resolutionTimestamp);
   }, [data]);
 
   const handleClaim = async (marketId: number, type: 'win' | 'refund') => {
@@ -225,12 +232,12 @@ export default function ClaimsPage() {
                       {market.optionA} vs {market.optionB}
                     </div>
                     <div className="text-pog-orange mt-2">
-                      {market.type === 'refund' ? 'Refund' : 'Winnings'}: {formatEther(market.amount)} AVAX
+                      {market.type === 'refund' ? 'Refund' : market.type === 'win' ? 'Winnings' : 'Loss'}: {formatEther(market.amount)} AVAX
                     </div>
                   </div>
                   <button
-                    onClick={() => handleClaim(market.id, market.type)}
-                    disabled={claiming === market.id}
+                    onClick={() => handleClaim(market.id, market.type === 'win' ? 'win' : 'refund')}
+                    disabled={claiming === market.id || market.type === 'loss'}
                     className={`cyber-button ml-4 ${market.type === 'refund' ? 'bg-blue-600' : ''}`}
                   >
                     {claiming === market.id ? 'Claiming...' : `Claim ${market.type === 'refund' ? 'Refund' : 'Winnings'}`}
@@ -243,4 +250,4 @@ export default function ClaimsPage() {
       </div>
     </div>
   );
-} 
+}
