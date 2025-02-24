@@ -347,7 +347,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
       const contract = await getContract();
       if (!contract) throw new Error('Contract not initialized');
 
-      const tx = await contract.setDefaultReferralFeeShare(
+      const tx = await contract.setBaseReferralFeeShare(
         Math.floor(parseFloat(baseReferralFeeShare) * 100)
       );
       await tx.wait();

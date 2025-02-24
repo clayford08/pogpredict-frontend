@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { ethers } from 'ethers';
-import { config } from '@/config';
+import { contracts } from '@/config/contracts';
 
 export interface ReferralStats {
   totalEarnings: bigint;
@@ -17,8 +17,8 @@ export function useReferral() {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     return new ethers.Contract(
-      config.contracts.Referral.address,
-      config.contracts.Referral.abi,
+      contracts.Referral.address,
+      contracts.Referral.abi,
       signer
     );
   }, []);
@@ -135,14 +135,14 @@ export function useReferral() {
     }
   }, [getContract]);
 
-  const setDefaultReferralFeeShare = useCallback(async (feeShare: number) => {
+  const setBaseReferralFeeShare = useCallback(async (feeShare: number) => {
     const contract = await getContract();
     if (!contract) throw new Error('No contract available');
     try {
-      const tx = await contract.setDefaultReferralFeeShare(feeShare);
+      const tx = await contract.setBaseReferralFeeShare(feeShare);
       return tx.wait();
     } catch (error) {
-      console.error('Error setting default referral fee share:', error);
+      console.error('Error setting base referral fee share:', error);
       throw error;
     }
   }, [getContract]);
@@ -169,7 +169,7 @@ export function useReferral() {
     setReferrer,
     isValidReferrer,
     getReferralFeeShare,
-    setDefaultReferralFeeShare,
+    setBaseReferralFeeShare,
     hasReferrerSet
   };
 } 
