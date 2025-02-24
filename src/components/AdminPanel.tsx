@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useContract } from '@/hooks/useContract';
+import { useReferral } from '@/hooks/useReferral';
 import { ethers } from 'ethers';
 
 interface AdminPanelProps {
@@ -10,6 +11,7 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ address }: AdminPanelProps) {
   const { getContract } = useContract();
+  const { setBaseReferralFeeShare: updateBaseFeeShare, setCustomReferralFeeShare } = useReferral();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -344,13 +346,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
     setSuccess(null);
 
     try {
-      const contract = await getContract();
-      if (!contract) throw new Error('Contract not initialized');
-
-      const tx = await contract.setBaseReferralFeeShare(
-        Math.floor(parseFloat(baseReferralFeeShare) * 100)
-      );
-      await tx.wait();
+      await updateBaseFeeShare(Math.floor(parseFloat(baseReferralFeeShare) * 100));
       setSuccess(`Base referral fee share updated to ${baseReferralFeeShare}%`);
       setBaseReferralFeeShare('');
     } catch (err: any) {
@@ -377,14 +373,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
     setSuccess(null);
 
     try {
-      const contract = await getContract();
-      if (!contract) throw new Error('Contract not initialized');
-
-      const tx = await contract.setCustomReferralFeeShare(
-        userAddress,
-        Math.floor(parseFloat(userFeeShare) * 100)
-      );
-      await tx.wait();
+      await setCustomReferralFeeShare(userAddress, Math.floor(parseFloat(userFeeShare) * 100));
       setSuccess(`Custom fee share for ${userAddress} updated to ${userFeeShare}%`);
       setUserAddress('');
       setUserFeeShare('');
