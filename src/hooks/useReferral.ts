@@ -135,6 +135,18 @@ export function useReferral() {
     }
   }, [getContract]);
 
+  const setDefaultReferralFeeShare = useCallback(async (feeShare: number) => {
+    const contract = await getContract();
+    if (!contract) throw new Error('No contract available');
+    try {
+      const tx = await contract.setDefaultReferralFeeShare(feeShare);
+      return tx.wait();
+    } catch (error) {
+      console.error('Error setting default referral fee share:', error);
+      throw error;
+    }
+  }, [getContract]);
+
   const hasReferrerSet = useCallback(async (address: string): Promise<boolean> => {
     const contract = await getContract();
     if (!contract) throw new Error('No contract available');
@@ -157,6 +169,7 @@ export function useReferral() {
     setReferrer,
     isValidReferrer,
     getReferralFeeShare,
+    setDefaultReferralFeeShare,
     hasReferrerSet
   };
 } 
