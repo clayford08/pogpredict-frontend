@@ -135,11 +135,14 @@ export function useReferral() {
     }
   }, [getContract]);
 
-  const setBaseReferralFeeShare = useCallback(async (feeShare: number) => {
+  const setBaseReferralFeeShare = useCallback(async (feeShare: string | number) => {
     const contract = await getContract();
     if (!contract) throw new Error('No contract available');
     try {
-      const tx = await contract.setBaseReferralFeeShare(feeShare);
+      const feeShareValue = typeof feeShare === 'string' 
+        ? Math.floor(parseFloat(feeShare) * 100)
+        : Math.floor(feeShare * 100);
+      const tx = await contract.setBaseReferralFeeShare(feeShareValue);
       return tx.wait();
     } catch (error) {
       console.error('Error setting base referral fee share:', error);
@@ -159,6 +162,21 @@ export function useReferral() {
     }
   }, [getContract]);
 
+  const setCustomReferralFeeShare = useCallback(async (userAddress: string, feeShare: string | number) => {
+    const contract = await getContract();
+    if (!contract) throw new Error('No contract available');
+    try {
+      const feeShareValue = typeof feeShare === 'string'
+        ? Math.floor(parseFloat(feeShare) * 100)
+        : Math.floor(feeShare * 100);
+      const tx = await contract.setCustomReferralFeeShare(userAddress, feeShareValue);
+      return tx.wait();
+    } catch (error) {
+      console.error('Error setting custom referral fee share:', error);
+      throw error;
+    }
+  }, [getContract]);
+
   return {
     getContract,
     getReferralStats,
@@ -170,6 +188,7 @@ export function useReferral() {
     isValidReferrer,
     getReferralFeeShare,
     setBaseReferralFeeShare,
+    setCustomReferralFeeShare,
     hasReferrerSet
   };
 } 
