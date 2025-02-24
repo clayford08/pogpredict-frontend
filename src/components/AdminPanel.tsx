@@ -346,7 +346,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
     setSuccess(null);
 
     try {
-      await updateBaseFeeShare(Math.floor(parseFloat(baseReferralFeeShare) * 100));
+      await updateBaseFeeShare(parseFloat(baseReferralFeeShare));
       setSuccess(`Base referral fee share updated to ${baseReferralFeeShare}%`);
       setBaseReferralFeeShare('');
     } catch (err: any) {
@@ -373,7 +373,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
     setSuccess(null);
 
     try {
-      await setCustomReferralFeeShare(userAddress, Math.floor(parseFloat(userFeeShare) * 100));
+      await setCustomReferralFeeShare(userAddress, parseFloat(userFeeShare));
       setSuccess(`Custom fee share for ${userAddress} updated to ${userFeeShare}%`);
       setUserAddress('');
       setUserFeeShare('');
