@@ -1,6 +1,6 @@
 import { AVALANCHE_TESTNET, CONTRACT_ADDRESSES } from './networks';
 import PogPredictArtifact from '../../artifacts/contracts/PogPredict.sol/PogPredict.json';
-import CS2OracleArtifact from '../../artifacts/contracts/CS2Oracle.sol/CS2Oracle.json';
+import CS2OracleArtifact from '../../artifacts/contracts/PogPredict.sol/ICS2Oracle.json';
 import ReferralArtifact from '../../artifacts/contracts/Referral.sol/Referral.json';
 
 export const config = {
