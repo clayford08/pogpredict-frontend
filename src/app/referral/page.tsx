@@ -19,20 +19,26 @@ interface ReferralStats {
 
 export default function ReferralPage() {
   const { account, connect } = useWeb3();
-  const { getReferralCode, getReferralEarnings, getReferralCount, setReferralCode, hasReferrerSet, setReferrer } = useReferral();
+  const { getReferralStats, setReferralCode, setReferrer } = useReferral();
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // State for contract data
-  const [referralCode, setReferralCodeState] = useState<string | null>(null);
-  const [referralEarnings, setReferralEarnings] = useState<bigint | null>(null);
-  const [referralCount, setReferralCount] = useState<bigint | null>(null);
-  const [hasReferrer, setHasReferrer] = useState<boolean>(false);
+  // State for referral data
+  const [stats, setStats] = useState<{
+    totalEarnings: bigint;
+    referralCount: bigint;
+    feeShare: bigint | null;
+    referralCode: string;
+    hasReferrer: boolean;
+    referrer: string;
+  } | null>(null);
   const [newCode, setNewCode] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [tempReferralCode, setTempReferralCode] = useState('');
+
+  const DEFAULT_FEE_SHARE = BigInt(500); // 5%
 
   // Handle setting referrer
   const handleSetReferrer = async (code: string): Promise<boolean> => {
@@ -48,21 +54,10 @@ export default function ReferralPage() {
       setError('Waiting for referral transaction to be confirmed...');
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Verify referrer was set
-      const hasRef = await hasReferrerSet(account!);
-      console.log('Referrer check result:', hasRef);
+      // Fetch updated stats
+      await fetchReferralData();
       
-      if (!hasRef) {
-        setError('Failed to set referral code. Please try again.');
-        return false;
-      }
-      
-      setHasReferrer(true);
-      setReferralCode(code);
       setError('Referral code set successfully.');
-      
-      // Wait a moment for UI to update
-      await new Promise(resolve => setTimeout(resolve, 1000));
       return true;
     } catch (error: any) {
       console.error('Error setting referral code:', error);
@@ -71,53 +66,27 @@ export default function ReferralPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchReferralData = async () => {
-      if (account) {
-        try {
-          try {
-            const code = await getReferralCode(account);
-            setReferralCodeState(code);
-            setNewCode(code || '');
-            if (code) {
-              // Generate shareable URL
-              setShareUrl(`https://pogpredict.io?ref=${code}`);
-            }
-          } catch (err) {
-            console.error('Error fetching referral code:', err);
-          }
-
-          try {
-            const earnings = await getReferralEarnings(account);
-            setReferralEarnings(earnings);
-          } catch (err) {
-            console.error('Error fetching referral earnings:', err);
-          }
-
-          try {
-            const count = await getReferralCount(account);
-            setReferralCount(count);
-          } catch (err) {
-            console.error('Error fetching referral count:', err);
-          }
-
-          try {
-            const hasRef = await hasReferrerSet(account);
-            setHasReferrer(hasRef);
-          } catch (err) {
-            console.error('Error checking referrer status:', err);
-          }
-        } catch (error) {
-          console.error('Error fetching referral data:', error);
-        }
+  const fetchReferralData = async () => {
+    if (!account) return;
+    
+    try {
+      const stats = await getReferralStats(account);
+      setStats(stats);
+      setNewCode(stats.referralCode || '');
+      if (stats.referralCode) {
+        setShareUrl(`https://pogpredict.io?ref=${stats.referralCode}`);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchReferralData();
-  }, [account, getReferralCode, getReferralEarnings, getReferralCount, hasReferrerSet]);
+  }, [account]);
 
   const handleCopy = () => {
-    if (referralCode) {
+    if (stats?.referralCode) {
       navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -143,9 +112,7 @@ export default function ReferralPage() {
     setIsUpdating(true);
     try {
       await setReferralCode(newCode);
-      setReferralCodeState(newCode);
-      // Update the share URL immediately after successful code update
-      setShareUrl(`https://pogpredict.io?ref=${newCode}`);
+      await fetchReferralData();
       setIsEditing(false);
       setError(null);
     } catch (error) {
@@ -305,7 +272,7 @@ export default function ReferralPage() {
     // Add referral code
     ctx.font = 'bold 48px InterCanvas';
     ctx.fillStyle = '#FF4500';
-    ctx.fillText(referralCode || '', canvas.width / 2, boxY + 100);
+    ctx.fillText(stats?.referralCode || '', canvas.width / 2, boxY + 100);
 
     // Add footer text
     ctx.font = '24px InterCanvas';
@@ -348,6 +315,11 @@ export default function ReferralPage() {
     return (Number(value) / 1e18).toFixed(2);
   };
 
+  const formatFeeShare = (value: bigint | null | undefined): string => {
+    if (!value) return formatFeeShare(DEFAULT_FEE_SHARE);
+    return (Number(value) / 100).toFixed(2);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
       <div className="max-w-6xl mx-auto">
@@ -384,7 +356,7 @@ export default function ReferralPage() {
                   <button
                     className="cyber-button bg-black/30"
                     onClick={() => {
-                      setNewCode(referralCode || '');
+                      setNewCode(stats?.referralCode || '');
                       setError(null);
                       setIsEditing(false);
                     }}
@@ -402,7 +374,7 @@ export default function ReferralPage() {
                     <button
                       className={`cyber-button ${copied ? 'bg-green-500' : ''}`}
                       onClick={handleCopy}
-                      disabled={!referralCode}
+                      disabled={!stats?.referralCode}
                     >
                       {copied ? 'Copied!' : 'Copy URL'}
                     </button>
@@ -418,14 +390,14 @@ export default function ReferralPage() {
                     <button
                       className="cyber-button flex-1 bg-[#1DA1F2] hover:bg-[#1A8CD8]"
                       onClick={handleShare}
-                      disabled={!referralCode}
+                      disabled={!stats?.referralCode}
                     >
                       Share on X
                     </button>
                     <button
                       className="cyber-button flex-1 bg-pog-orange hover:bg-pog-orange/80"
                       onClick={handleDownloadImage}
-                      disabled={!referralCode}
+                      disabled={!stats?.referralCode}
                     >
                       Download Image
                     </button>
@@ -433,7 +405,7 @@ export default function ReferralPage() {
                 </div>
               )}
               <p className="text-sm text-gray-400 mt-2">
-                Share this link with friends to earn 5% of their trading fees
+                Share this link with friends to earn {formatFeeShare(stats?.feeShare ?? null)}% of their trading fees
               </p>
             </div>
 
@@ -442,7 +414,7 @@ export default function ReferralPage() {
               <div>
                 <div className="text-sm text-gray-400">Total Earnings</div>
                 <div className="text-2xl font-bold text-pog-orange glow-text">
-                  {formatBigInt(referralEarnings)} AVAX
+                  {formatBigInt(stats?.totalEarnings ?? null)} AVAX
                 </div>
               </div>
             </div>
@@ -451,18 +423,20 @@ export default function ReferralPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="gradient-border p-6 bg-black/30 text-center hover:scale-[1.02] transition-all duration-300">
               <div className="text-3xl font-bold text-pog-orange glow-text mb-2">
-                {referralCount ? Number(referralCount) : 0}
+                {stats?.referralCount ? Number(stats.referralCount) : 0}
               </div>
               <div className="text-gray-400">Total Referrals</div>
             </div>
             <div className="gradient-border p-6 bg-black/30 text-center hover:scale-[1.02] transition-all duration-300">
               <div className="text-3xl font-bold text-pog-orange glow-text mb-2">
-                {referralCount ? Number(referralCount) : 0}
+                {stats?.referralCount ? Number(stats.referralCount) : 0}
               </div>
               <div className="text-gray-400">Active Users</div>
             </div>
             <div className="gradient-border p-6 bg-black/30 text-center hover:scale-[1.02] transition-all duration-300">
-              <div className="text-3xl font-bold text-pog-orange glow-text mb-2">5%</div>
+              <div className="text-3xl font-bold text-pog-orange glow-text mb-2">
+                {formatFeeShare(stats?.feeShare ?? null)}%
+              </div>
               <div className="text-gray-400">Commission Rate</div>
             </div>
           </div>
@@ -476,7 +450,7 @@ export default function ReferralPage() {
               </div>
               <div className="flex items-start space-x-3 hover:text-pog-orange transition-colors">
                 <span className="text-pog-orange">•</span>
-                <p>When they create markets or trade using your code, you earn 5% of their fees</p>
+                <p>When they create markets or trade using your code, you earn {formatFeeShare(stats?.feeShare ?? null)}% of their fees</p>
               </div>
               <div className="flex items-start space-x-3 hover:text-pog-orange transition-colors">
                 <span className="text-pog-orange">•</span>
@@ -490,7 +464,7 @@ export default function ReferralPage() {
           </div>
 
           {/* Add Referrer Section */}
-          {!hasReferrer && (
+          {!stats?.hasReferrer && (
             <div className="bg-gray-800/50 rounded-lg p-6 border border-pog-orange/20 mt-8">
               <h2 className="text-xl font-bold text-white mb-4">Set Your Referrer</h2>
               <div className="space-y-4">
@@ -536,9 +510,9 @@ export default function ReferralPage() {
           <div className="bg-gray-800/50 rounded-lg p-6 border border-pog-orange/20 mt-8">
             <h2 className="text-xl font-bold text-white mb-4">Referral Status</h2>
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${hasReferrer ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${stats?.hasReferrer ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
               <span className="text-gray-300">
-                {hasReferrer ? 'You have a referrer' : 'You do not have a referrer yet'}
+                {stats?.hasReferrer ? 'You have a referrer' : 'You do not have a referrer yet'}
               </span>
             </div>
           </div>

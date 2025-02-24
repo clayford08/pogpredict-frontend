@@ -177,7 +177,7 @@ export default function Home() {
           <div className="text-center">
             <div className="text-pog-orange text-4xl mb-2 animate-float">💰</div>
             <h3 className="font-bold mb-2 text-pog-orange">Fair Markets</h3>
-            <p className="cyber-text">Powered by AMM for accurate pricing</p>
+            <p className="cyber-text">Real-time odds based on community predictions</p>
           </div>
           <div className="text-center">
             <div className="text-pog-orange text-4xl mb-2 animate-float">🤝</div>

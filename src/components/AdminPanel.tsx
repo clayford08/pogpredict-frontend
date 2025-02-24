@@ -18,6 +18,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
   const [marketId, setMarketId] = useState('');
   const [outcome, setOutcome] = useState<'A' | 'B' | 'REFUND'>('A');
   const [resolutionDetails, setResolutionDetails] = useState('');
+  const [endReason, setEndReason] = useState('');
 
   // Fee Management
   const [newFeePercent, setNewFeePercent] = useState('');
@@ -38,11 +39,9 @@ export default function AdminPanel({ address }: AdminPanelProps) {
   const [refundWindow, setRefundWindow] = useState('');
 
   // Referral Management
-  const [referrerAddress, setReferrerAddress] = useState('');
-  const [referralCode, setReferralCode] = useState('');
-  const [kolAddress, setKolAddress] = useState('');
-  const [kolFeeShare, setKolFeeShare] = useState('');
-  const [defaultReferralFeeShare, setDefaultReferralFeeShare] = useState('');
+  const [baseReferralFeeShare, setBaseReferralFeeShare] = useState('');
+  const [userAddress, setUserAddress] = useState('');
+  const [userFeeShare, setUserFeeShare] = useState('');
   const [referralContractAddress, setReferralContractAddress] = useState('');
 
   // Contract Pausing
@@ -334,62 +333,9 @@ export default function AdminPanel({ address }: AdminPanelProps) {
   };
 
   // Referral Management Functions
-  const addKOL = async () => {
-    if (!kolAddress || !kolFeeShare) {
-      setError('Please enter both KOL address and fee share');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const contract = await getContract();
-      if (!contract) throw new Error('Contract not initialized');
-
-      const tx = await contract.addKOL(kolAddress, Math.floor(parseFloat(kolFeeShare) * 100));
-      await tx.wait();
-      setSuccess(`KOL ${kolAddress} added with ${kolFeeShare}% fee share`);
-      setKolAddress('');
-      setKolFeeShare('');
-    } catch (err: any) {
-      console.error('Error adding KOL:', err);
-      setError(err.message || 'Failed to add KOL');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeKOL = async () => {
-    if (!kolAddress) {
-      setError('Please enter KOL address');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const contract = await getContract();
-      if (!contract) throw new Error('Contract not initialized');
-
-      const tx = await contract.removeKOL(kolAddress);
-      await tx.wait();
-      setSuccess(`KOL ${kolAddress} removed`);
-      setKolAddress('');
-    } catch (err: any) {
-      console.error('Error removing KOL:', err);
-      setError(err.message || 'Failed to remove KOL');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateDefaultReferralFeeShare = async () => {
-    if (!defaultReferralFeeShare) {
-      setError('Please enter default referral fee share');
+  const updateBaseReferralFeeShare = async () => {
+    if (!baseReferralFeeShare) {
+      setError('Please enter base referral fee share');
       return;
     }
 
@@ -402,14 +348,49 @@ export default function AdminPanel({ address }: AdminPanelProps) {
       if (!contract) throw new Error('Contract not initialized');
 
       const tx = await contract.setDefaultReferralFeeShare(
-        Math.floor(parseFloat(defaultReferralFeeShare) * 100)
+        Math.floor(parseFloat(baseReferralFeeShare) * 100)
       );
       await tx.wait();
-      setSuccess(`Default referral fee share updated to ${defaultReferralFeeShare}%`);
-      setDefaultReferralFeeShare('');
+      setSuccess(`Base referral fee share updated to ${baseReferralFeeShare}%`);
+      setBaseReferralFeeShare('');
     } catch (err: any) {
-      console.error('Error updating default referral fee share:', err);
-      setError(err.message || 'Failed to update default referral fee share');
+      console.error('Error updating base referral fee share:', err);
+      setError(err.message || 'Failed to update base referral fee share');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserReferralFeeShare = async () => {
+    if (!userAddress || !userFeeShare) {
+      setError('Please enter both user address and fee share');
+      return;
+    }
+
+    if (!ethers.isAddress(userAddress)) {
+      setError('Invalid user address');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const contract = await getContract();
+      if (!contract) throw new Error('Contract not initialized');
+
+      const tx = await contract.setCustomReferralFeeShare(
+        userAddress,
+        Math.floor(parseFloat(userFeeShare) * 100)
+      );
+      await tx.wait();
+      setSuccess(`Custom fee share for ${userAddress} updated to ${userFeeShare}%`);
+      setUserAddress('');
+      setUserFeeShare('');
+    } catch (err: any) {
+      console.error('Error updating user referral fee share:', err);
+      setError(err.message || 'Failed to update user referral fee share');
     } finally {
       setLoading(false);
     }
@@ -484,6 +465,34 @@ export default function AdminPanel({ address }: AdminPanelProps) {
     }
   };
 
+  // Add endMarket function
+  const endMarket = async () => {
+    if (!marketId || !endReason) {
+      setError('Please enter both market ID and end reason');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const contract = await getContract();
+      if (!contract) throw new Error('Contract not initialized');
+
+      const tx = await contract.endMarket(marketId, endReason, true); // withRefund set to true
+      await tx.wait();
+      setSuccess(`Market ${marketId} ended and refunded successfully`);
+      setMarketId('');
+      setEndReason('');
+    } catch (err: any) {
+      console.error('Error ending market:', err);
+      setError(err.message || 'Failed to end market');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Market Resolution */}
@@ -498,6 +507,18 @@ export default function AdminPanel({ address }: AdminPanelProps) {
               onChange={(e) => setMarketId(e.target.value)}
               className="cyber-input w-full"
               placeholder="Enter market ID"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">End Reason (for Refund)</label>
+            <input
+              type="text"
+              value={endReason}
+              onChange={(e) => setEndReason(e.target.value)}
+              className="cyber-input w-full"
+              placeholder="Enter reason for ending market"
               disabled={loading}
             />
           </div>
@@ -542,6 +563,13 @@ export default function AdminPanel({ address }: AdminPanelProps) {
               className="cyber-button flex-1"
             >
               Resolve from Oracle
+            </button>
+            <button
+              onClick={endMarket}
+              disabled={loading}
+              className="cyber-button flex-1 bg-yellow-600"
+            >
+              End & Refund
             </button>
           </div>
         </div>
@@ -756,63 +784,54 @@ export default function AdminPanel({ address }: AdminPanelProps) {
         <h2 className="cyber-subtitle mb-4">Referral Management</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">KOL Management</label>
-            <input
-              type="text"
-              value={kolAddress}
-              onChange={(e) => setKolAddress(e.target.value)}
-              className="cyber-input w-full"
-              placeholder="Enter KOL address"
-              disabled={loading}
-            />
+            <label className="block text-sm text-gray-400 mb-2">Base Referral Fee Share (%)</label>
             <input
               type="number"
-              value={kolFeeShare}
-              onChange={(e) => setKolFeeShare(e.target.value)}
-              className="cyber-input w-full mt-2"
-              placeholder="Enter KOL fee share percentage"
-              step="0.1"
-              min="0"
-              max="50"
-              disabled={loading}
-            />
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={addKOL}
-                disabled={loading}
-                className="cyber-button flex-1"
-              >
-                Add KOL
-              </button>
-              <button
-                onClick={removeKOL}
-                disabled={loading}
-                className="cyber-button flex-1"
-              >
-                Remove KOL
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Default Referral Fee Share (%)</label>
-            <input
-              type="number"
-              value={defaultReferralFeeShare}
-              onChange={(e) => setDefaultReferralFeeShare(e.target.value)}
+              value={baseReferralFeeShare}
+              onChange={(e) => setBaseReferralFeeShare(e.target.value)}
               className="cyber-input w-full"
-              placeholder="Enter default referral fee share"
+              placeholder="Enter base referral fee share percentage"
               step="0.1"
               min="0"
               max="50"
               disabled={loading}
             />
             <button
-              onClick={updateDefaultReferralFeeShare}
+              onClick={updateBaseReferralFeeShare}
               disabled={loading}
               className="cyber-button w-full mt-2"
             >
-              Update Default Fee Share
+              Update Base Fee Share
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Custom User Fee Share</label>
+            <input
+              type="text"
+              value={userAddress}
+              onChange={(e) => setUserAddress(e.target.value)}
+              className="cyber-input w-full mb-2"
+              placeholder="Enter user address"
+              disabled={loading}
+            />
+            <input
+              type="number"
+              value={userFeeShare}
+              onChange={(e) => setUserFeeShare(e.target.value)}
+              className="cyber-input w-full"
+              placeholder="Enter custom fee share percentage"
+              step="0.1"
+              min="0"
+              max="50"
+              disabled={loading}
+            />
+            <button
+              onClick={updateUserReferralFeeShare}
+              disabled={loading}
+              className="cyber-button w-full mt-2"
+            >
+              Update User Fee Share
             </button>
           </div>
 

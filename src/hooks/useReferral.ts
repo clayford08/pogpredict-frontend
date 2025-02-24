@@ -2,6 +2,15 @@ import { useCallback } from 'react';
 import { ethers } from 'ethers';
 import { config } from '@/config';
 
+export interface ReferralStats {
+  totalEarnings: bigint;
+  referralCount: bigint;
+  feeShare: bigint | null;
+  referralCode: string;
+  hasReferrer: boolean;
+  referrer: string;
+}
+
 export function useReferral() {
   const getContract = useCallback(async () => {
     if (!window.ethereum) return null;
@@ -13,6 +22,39 @@ export function useReferral() {
       signer
     );
   }, []);
+
+  const getReferralStats = useCallback(async (address: string): Promise<ReferralStats> => {
+    const contract = await getContract();
+    if (!contract) throw new Error('No contract available');
+    
+    try {
+      const [
+        totalEarnings,
+        referralCount,
+        feeShare,
+        referralCode,
+        referrer
+      ] = await Promise.all([
+        contract.referralEarnings(address),
+        contract.referralCount(address),
+        contract.getReferralFeeShare(address).catch(() => null),
+        contract.addressToReferralCode(address),
+        contract.userReferrer(address)
+      ]);
+
+      return {
+        totalEarnings,
+        referralCount,
+        feeShare,
+        referralCode,
+        hasReferrer: referrer !== ethers.ZeroAddress,
+        referrer
+      };
+    } catch (error) {
+      console.error('Error getting referral stats:', error);
+      throw error;
+    }
+  }, [getContract]);
 
   const getReferralCode = useCallback(async (address: string): Promise<string> => {
     const contract = await getContract();
@@ -107,6 +149,7 @@ export function useReferral() {
 
   return {
     getContract,
+    getReferralStats,
     getReferralCode,
     getReferralEarnings,
     getReferralCount,

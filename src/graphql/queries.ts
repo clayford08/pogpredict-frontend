@@ -143,7 +143,6 @@ export const GET_CLAIMABLE_MARKETS = gql`
         user: $userAddress,
         claimed: false,
         market_: { 
-          outcome_not: null,
           resolutionTimestamp_gt: 0,
           resolvedBy_not: null
         }
