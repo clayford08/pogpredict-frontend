@@ -8,9 +8,9 @@ dataSources:
     name: PogPredict
     network: fuji
     source:
-      address: "0x6603ed335e0B7f4D907849864613cFc53cDEd16d"
+      address: "0x530Ef5B38Fc609a0fDb92eb9ECb0772e8bBc391b"
       abi: PogPredict
-      startBlock: 38008658
+      startBlock: 38174697
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -37,4 +37,8 @@ dataSources:
           handler: handleMarketCreated
         - event: MarketResolved(indexed uint256,uint8,uint8,string,address)
           handler: handleMarketResolved
+        - event: MarketRefunded(indexed uint256,string,address)
+          handler: handleMarketRefunded
+        - event: RefundClaimed(indexed uint256,indexed address,uint256)
+          handler: handleRefundClaimed
       file: ./src/mapping.ts 
