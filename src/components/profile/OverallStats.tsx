@@ -1,7 +1,7 @@
 'use client';
 
 import { UserStats } from '@/types/profile';
-import { formatETH } from '@/lib/utils';
+import { formatAVAX } from '@/lib/utils';
 
 interface OverallStatsProps {
   stats: UserStats;
@@ -23,17 +23,17 @@ export default function OverallStats({ stats }: OverallStatsProps) {
       <div className="cyber-card hover:scale-[1.02] transition-all duration-300">
         <div className="text-sm text-gray-400">Total Won</div>
         <div className="text-2xl font-bold text-pog-orange glow-text">
-          {formatETH(stats.totalETHWon)} ETH
+          {formatAVAX(stats.totalAVAXWon)} ETH
         </div>
         <div className="text-sm text-gray-400 mt-2">
-          Largest Win: {formatETH(stats.largestWin)} ETH
+          Largest Win: {formatAVAX(stats.largestWin)} ETH
         </div>
       </div>
 
       <div className="cyber-card hover:scale-[1.02] transition-all duration-300">
         <div className="text-sm text-gray-400">Volume</div>
         <div className="text-2xl font-bold text-pog-orange glow-text">
-          {formatETH(stats.lifetimeETHStaked)} ETH
+          {formatAVAX(stats.lifetimeAVAXStaked)} ETH
         </div>
         <div className="text-sm text-gray-400 mt-2">
           Largest Prediction: {largestPrediction} ETH

@@ -2,9 +2,9 @@ export interface UserStats {
   marketsParticipated: number;
   wins: number;
   losses: number;
-  totalETHWon: string;
-  lifetimeETHStaked: string;
-  activeETHStaked: string;
+  totalAVAXWon: string;
+  lifetimeAVAXStaked: string;
+  activeAVAXStaked: string;
   lastActiveTimestamp: number;
   currentStreak: number;
   bestStreak: number;
