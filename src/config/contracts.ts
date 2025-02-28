@@ -7,8 +7,8 @@ export const AVALANCHE_TESTNET = {
   network: 'avalanche-testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'Avalanche',
-    symbol: 'AVAX',
+    name: 'Ethereum',
+    symbol: 'ETH',
   },
   rpcUrls: {
     default: process.env.NEXT_PUBLIC_AVALANCHE_RPC || 'https://api.avax-test.network/ext/bc/C/rpc',

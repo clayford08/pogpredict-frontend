@@ -34,7 +34,7 @@ export default function DocsPage() {
             <h3 className="text-xl font-semibold mb-2">Prediction Markets</h3>
             <p>
               Each market represents an upcoming esports match or event. Markets have two possible
-              outcomes, and users can predict either outcome by staking AVAX. The odds for each
+              outcomes, and users can predict either outcome by staking ETH. The odds for each
               outcome are determined by the total amount staked on each side.
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function DocsPage() {
             <ul className="list-disc list-inside ml-4 mt-2">
               <li>Total predictions made</li>
               <li>Win/loss record</li>
-              <li>Total AVAX won</li>
+              <li>Total ETH won</li>
               <li>Current and best winning streaks</li>
             </ul>
           </div>
@@ -139,7 +139,7 @@ export default function DocsPage() {
               <li>Regularly check the Claims page for winnings</li>
               <li>Track your performance in the Profile page</li>
               <li>Set up your referral code early to maximize earnings</li>
-              <li>Keep enough AVAX in your wallet for transaction fees</li>
+              <li>Keep enough ETH in your wallet for transaction fees</li>
             </ul>
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function DocsPage() {
           <div>
             <h3 className="text-xl font-semibold mb-2">How are the odds calculated?</h3>
             <p>
-              Odds are calculated based on the total amount staked on each outcome. The more AVAX
+              Odds are calculated based on the total amount staked on each outcome. The more ETH
               staked on an outcome, the lower its odds and potential payout will be.
             </p>
           </div>
@@ -176,8 +176,8 @@ export default function DocsPage() {
           <div>
             <h3 className="text-xl font-semibold mb-2">What networks are supported?</h3>
             <p>
-              PogPredict currently operates on the Avalanche network. Make sure your wallet is
-              connected to Avalanche and has sufficient AVAX for predictions and gas fees.
+              PogPredict currently operates on the Ethereum network. Make sure your wallet is
+              connected to Ethereum and has sufficient ETH for predictions and gas fees.
             </p>
           </div>
         </div>

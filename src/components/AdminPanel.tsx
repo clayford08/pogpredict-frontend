@@ -155,7 +155,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
 
       const tx = await contract.setMarketCreationFee(ethers.parseEther(marketCreationFee));
       await tx.wait();
-      setSuccess(`Market creation fee updated to ${marketCreationFee} AVAX`);
+      setSuccess(`Market creation fee updated to ${marketCreationFee} ETH`);
       setMarketCreationFee('');
     } catch (err: any) {
       console.error('Error updating market creation fee:', err);
@@ -569,7 +569,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
         <h2 className="cyber-subtitle mb-4">Fee Management</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Market Creation Fee (AVAX)</label>
+            <label className="block text-sm text-gray-400 mb-2">Market Creation Fee (ETH)</label>
             <input
               type="number"
               value={marketCreationFee}
@@ -659,7 +659,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
         <h2 className="cyber-subtitle mb-4">Position Limits</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Max Position (AVAX)</label>
+            <label className="block text-sm text-gray-400 mb-2">Max Position (ETH)</label>
             <input
               type="number"
               value={maxPosition}
@@ -673,7 +673,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Min Position (AVAX)</label>
+            <label className="block text-sm text-gray-400 mb-2">Min Position (ETH)</label>
             <input
               type="number"
               value={minPosition}
@@ -687,7 +687,7 @@ export default function AdminPanel({ address }: AdminPanelProps) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Min Initial Pool (AVAX)</label>
+            <label className="block text-sm text-gray-400 mb-2">Min Initial Pool (ETH)</label>
             <input
               type="number"
               value={minInitialPool}

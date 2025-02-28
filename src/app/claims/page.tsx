@@ -239,7 +239,7 @@ export default function ClaimsPage() {
               <div>
                 <p className="text-green-500 font-semibold">Claim Successful!</p>
                 <p className="text-sm text-green-400">
-                  You claimed {successMessage.amount} AVAX 
+                  You claimed {successMessage.amount} ETH 
                   {successMessage.type === 'refund' ? ' (Refund)' : ' (Winnings)'}
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default function ClaimsPage() {
                       {market.optionA} vs {market.optionB}
                     </div>
                     <div className="text-pog-orange mt-2">
-                      {market.type === 'refund' ? 'Refund' : 'Winnings'}: {formatEther(market.winnings || 0n)} AVAX
+                      {market.type === 'refund' ? 'Refund' : 'Winnings'}: {formatEther(market.winnings || 0n)} ETH
                     </div>
                   </div>
                   <button

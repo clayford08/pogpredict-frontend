@@ -173,9 +173,9 @@ export function LeaderboardTable({ timeframe }: LeaderboardTableProps) {
                 </td>
                 <td className="p-4 text-center">{entry.totalBets}</td>
                 <td className="p-4 text-center">{winRate}%</td>
-                <td className="p-4 text-center">{entry.totalStaked} AVAX</td>
+                <td className="p-4 text-center">{entry.totalStaked} ETH</td>
                 <td className="p-4 text-center text-pog-orange">
-                  +{entry.totalWinnings} AVAX
+                  +{entry.totalWinnings} ETH
                 </td>
                 <td className="p-4 text-center">{entry.bestStreak}</td>
               </tr>

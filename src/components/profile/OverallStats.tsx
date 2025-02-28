@@ -23,20 +23,20 @@ export default function OverallStats({ stats }: OverallStatsProps) {
       <div className="cyber-card hover:scale-[1.02] transition-all duration-300">
         <div className="text-sm text-gray-400">Total Won</div>
         <div className="text-2xl font-bold text-pog-orange glow-text">
-          {formatAVAX(stats.totalAVAXWon)} AVAX
+          {formatAVAX(stats.totalAVAXWon)} ETH
         </div>
         <div className="text-sm text-gray-400 mt-2">
-          Largest Win: {formatAVAX(stats.largestWin)} AVAX
+          Largest Win: {formatAVAX(stats.largestWin)} ETH
         </div>
       </div>
 
       <div className="cyber-card hover:scale-[1.02] transition-all duration-300">
         <div className="text-sm text-gray-400">Volume</div>
         <div className="text-2xl font-bold text-pog-orange glow-text">
-          {formatAVAX(stats.lifetimeAVAXStaked)} AVAX
+          {formatAVAX(stats.lifetimeAVAXStaked)} ETH
         </div>
         <div className="text-sm text-gray-400 mt-2">
-          Largest Prediction: {largestPrediction} AVAX
+          Largest Prediction: {largestPrediction} ETH
         </div>
       </div>
 

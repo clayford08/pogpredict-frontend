@@ -12,7 +12,9 @@ import {
   UserLost,
   WinningsClaimed,
   MarketCreated,
-  MarketResolved
+  MarketResolved,
+  MarketRefunded,
+  RefundClaimed
 } from "../generated/PogPredict/PogPredict"
 import { User, Market, Bet, GlobalStat, PriceSnapshot } from "../generated/schema"
 
@@ -128,7 +130,7 @@ export function handleOptionBought(event: OptionBought): void {
   )
 
   // Create bet with simpler ID (without transaction hash)
-  let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
+  let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-" + (event.params.isOptionA ? "A" : "B")
   let bet = new Bet(betId)
   bet.user = user.id
   bet.market = market.id
@@ -152,18 +154,27 @@ export function handleUserWon(event: UserWon): void {
   let market = Market.load(event.params.marketId.toString())
   if (!market) return
 
-  // Find the bet by market and user
-  let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
-  let bet = Bet.load(betId)
-  if (!bet) return
+  // Check both options as user might have won on either
+  let betIdA = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-A"
+  let betIdB = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-B"
+  let betA = Bet.load(betIdA)
+  let betB = Bet.load(betIdB)
 
-  // Calculate net winnings (payout minus original stake)
-  let netWinnings = event.params.amount.minus(bet.amount)
+  // Update the winning bet and calculate stats
+  let netWinnings: BigInt | null = null
+  if (betA && betA.isOptionA && market.outcome == 1) {
+    betA.winnings = event.params.amount
+    betA.claimed = true
+    betA.save()
+    netWinnings = event.params.amount.minus(betA.amount)
+  } else if (betB && !betB.isOptionA && market.outcome == 2) {
+    betB.winnings = event.params.amount
+    betB.claimed = true
+    betB.save()
+    netWinnings = event.params.amount.minus(betB.amount)
+  }
 
-  // Update bet
-  bet.winnings = event.params.amount
-  bet.claimed = true
-  bet.save()
+  if (!netWinnings) return
 
   // Update user stats - only update winnings, not win count or streak
   // since those are handled in handleMarketResolved
@@ -194,17 +205,21 @@ export function handleUserLost(event: UserLost): void {
   let market = Market.load(event.params.marketId.toString())
   if (!market) return
 
-  // Find the bet by market and user
-  let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
-  let bet = Bet.load(betId)
-  if (!bet) return
+  // Check both options as user might have lost on either
+  let betIdA = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-A"
+  let betIdB = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-B"
+  let betA = Bet.load(betIdA)
+  let betB = Bet.load(betIdB)
 
-  // Update bet
-  bet.claimed = true
-  bet.save()
+  // Update the losing bet
+  if (betA && betA.isOptionA && market.outcome == 2) {
+    betA.claimed = true
+    betA.save()
+  } else if (betB && !betB.isOptionA && market.outcome == 1) {
+    betB.claimed = true
+    betB.save()
+  }
 
-  // No need to update user stats here as losses are handled in handleMarketResolved
-  
   // Calculate ROI
   if (user.totalStaked.gt(BigInt.fromI32(0))) {
     let netProfit = user.totalWinnings.minus(user.totalLost)
@@ -217,17 +232,33 @@ export function handleUserLost(event: UserLost): void {
 }
 
 export function handleWinningsClaimed(event: WinningsClaimed): void {
-  let betId = event.params.marketId.toString() + "-" + event.params.user.toHexString()
-  let bet = Bet.load(betId)
-  if (!bet) return
+  let market = Market.load(event.params.marketId.toString())
+  if (!market) return
 
-  // Calculate net winnings (payout minus original stake)
-  let netWinnings = event.params.payout.minus(bet.amount)
+  // Check both options as user might have won on either
+  let betIdA = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-A"
+  let betIdB = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-B"
+  let betA = Bet.load(betIdA)
+  let betB = Bet.load(betIdB)
 
-  bet.claimed = true
-  bet.winnings = event.params.payout
-  bet.outcome = 1 // 1 = won
-  bet.save()
+  // Update the winning bet and calculate stats
+  let netWinnings: BigInt | null = null
+  let winningBet: Bet | null = null
+
+  if (betA && betA.isOptionA && market.outcome == 1) {
+    winningBet = betA
+    netWinnings = event.params.payout.minus(betA.amount)
+  } else if (betB && !betB.isOptionA && market.outcome == 2) {
+    winningBet = betB
+    netWinnings = event.params.payout.minus(betB.amount)
+  }
+
+  if (!winningBet || !netWinnings) return
+
+  winningBet.claimed = true
+  winningBet.winnings = event.params.payout
+  winningBet.outcome = 1 // 1 = won
+  winningBet.save()
 
   // Update user stats when winnings are claimed
   let user = getOrCreateUser(event.params.user)
@@ -331,5 +362,44 @@ export function handleMarketResolved(event: MarketResolved): void {
         .div(BigDecimal.fromString("100"))
     }
     user.save()
+  }
+}
+
+export function handleMarketRefunded(event: MarketRefunded): void {
+  let market = Market.load(event.params.marketId.toString())
+  if (!market) return
+
+  market.resolvedBy = event.params.resolvedBy
+  market.resolutionDetails = event.params.reason
+  market.resolutionTimestamp = event.block.timestamp
+  market.save()
+
+  // Load all bets for this market
+  let bets = market.bets.load()
+  for (let i = 0; i < bets.length; i++) {
+    let bet = bets[i]
+    if (!bet || bet.claimed) continue // Skip if bet doesn't exist or is already claimed
+
+    // For refunds, we mark the bet as refundable but not yet claimed
+    bet.outcome = 3 // 3 = refundable
+    bet.save()
+  }
+}
+
+export function handleRefundClaimed(event: RefundClaimed): void {
+  // Check both options as both can be refunded
+  let betIdA = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-A"
+  let betIdB = event.params.marketId.toString() + "-" + event.params.user.toHexString() + "-B"
+  let betA = Bet.load(betIdA)
+  let betB = Bet.load(betIdB)
+
+  // Mark both bets as claimed if they exist and are refundable
+  if (betA && betA.outcome == 3) {
+    betA.claimed = true
+    betA.save()
+  }
+  if (betB && betB.outcome == 3) {
+    betB.claimed = true
+    betB.save()
   }
 } 
