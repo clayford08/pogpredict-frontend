@@ -309,7 +309,7 @@ export default function MarketPage({ params }: MarketPageProps) {
                 </div>
               </div>
               <div className="text-gray-400">
-                Pool: <span className="font-mono">{Number(poolA).toFixed(4)} AVAX</span>
+                Pool: <span className="font-mono">{Number(poolA).toFixed(4)} ETH</span>
               </div>
             </div>
 
@@ -329,7 +329,7 @@ export default function MarketPage({ params }: MarketPageProps) {
                 </div>
               </div>
               <div className="text-gray-400">
-                Pool: <span className="font-mono">{Number(poolB).toFixed(4)} AVAX</span>
+                Pool: <span className="font-mono">{Number(poolB).toFixed(4)} ETH</span>
               </div>
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function MarketPage({ params }: MarketPageProps) {
                 {/* Amount Input */}
                 <div>
                   <label className="block text-gray-300 mb-2">
-                    Amount (AVAX)
+                    Amount (ETH)
                   </label>
                   <input
                     type="number"
@@ -461,13 +461,13 @@ export default function MarketPage({ params }: MarketPageProps) {
                       <div className="flex justify-between">
                         <span>{market.optionA}:</span>
                         <span className="font-mono text-pog-orange">
-                          {formatEther(userBalances.optionA)} AVAX
+                          {formatEther(userBalances.optionA)} ETH
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>{market.optionB}:</span>
                         <span className="font-mono text-blue-400">
-                          {formatEther(userBalances.optionB)} AVAX
+                          {formatEther(userBalances.optionB)} ETH
                         </span>
                       </div>
                     </div>
@@ -510,7 +510,7 @@ export default function MarketPage({ params }: MarketPageProps) {
               <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-lg">
                 <span className="text-gray-400">Total Liquidity</span>
                 <span className="text-white font-mono">
-                  {formatEther(totalPool.toString())} AVAX
+                  {formatEther(totalPool.toString())} ETH
                 </span>
               </div>
               {market.resolved && (

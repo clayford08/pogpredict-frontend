@@ -136,7 +136,7 @@ export default function MarketCard({ market }: MarketCardProps) {
         </div>
         
         <div className="mt-4 text-sm text-gray-300 font-medium relative z-10">
-          Total Pool: {formatEther(totalPoolBigInt.toString())} AVAX
+          Total Pool: {formatEther(totalPoolBigInt.toString())} ETH
         </div>
       </div>
     </Link>
