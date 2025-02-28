@@ -85,7 +85,7 @@ export default function RecentActivity({ activity }: RecentActivityProps) {
                   </td>
                   <td className="py-4 capitalize">{item.type}</td>
                   <td className="py-4">{position}</td>
-                  <td className="py-4">{item.amount} AVAX</td>
+                  <td className="py-4">{item.amount} ETH</td>
                   <td className="py-4">
                     {new Date(item.timestamp * 1000).toLocaleString()}
                   </td>
