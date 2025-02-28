@@ -51,7 +51,7 @@ export function isDeployerAddress(address: string | null): boolean {
   return address.toLowerCase() === process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS?.toLowerCase();
 }
 
-export function formatAVAX(value: string | bigint): string {
+export function formatETH(value: string | bigint): string {
   if (!value) return '0.00';
   
   // If the value is already in ether format (contains a decimal point)

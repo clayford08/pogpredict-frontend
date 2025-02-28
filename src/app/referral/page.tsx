@@ -414,7 +414,7 @@ export default function ReferralPage() {
               <div>
                 <div className="text-sm text-gray-400">Total Earnings</div>
                 <div className="text-2xl font-bold text-pog-orange glow-text">
-                  {formatBigInt(stats?.totalEarnings ?? null)} AVAX
+                  {formatBigInt(stats?.totalEarnings ?? null)} ETH
                 </div>
               </div>
             </div>
