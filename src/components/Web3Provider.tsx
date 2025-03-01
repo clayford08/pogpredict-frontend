@@ -36,9 +36,13 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isWalletAvailable, setIsWalletAvailable] = useState<boolean>(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Check if ethereum provider is available
+  // Only run client-side code after mounting
   useEffect(() => {
+    setMounted(true);
+    
+    // Check if ethereum provider is available
     const checkProvider = () => {
       try {
         // Check if ethereum is available in window
@@ -60,7 +64,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeSigner = async () => {
-      if (!isWalletAvailable) {
+      if (!isWalletAvailable || !mounted) {
         setSigner(null);
         return;
       }
@@ -90,7 +94,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeSigner();
-  }, [walletClient, chain?.id, switchChainAsync, isWalletAvailable]);
+  }, [walletClient, chain?.id, switchChainAsync, isWalletAvailable, mounted]);
 
   const connect = async () => {
     if (!isWalletAvailable) {
@@ -121,8 +125,27 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // If not mounted yet, render children without wallet functionality
+  // This ensures consistent rendering between server and client
+  if (!mounted) {
+    return (
+      <Web3Context.Provider 
+        value={{ 
+          account: null,
+          signer: null,
+          connect: async () => {},
+          disconnect: async () => {},
+          isConnecting: false,
+          error: null
+        }}
+      >
+        {children}
+      </Web3Context.Provider>
+    );
+  }
+
   // If no wallet is available and we're on the client side, show the fallback
-  if (!isWalletAvailable && typeof window !== 'undefined') {
+  if (mounted && !isWalletAvailable) {
     return <WalletFallback error={error?.message} />;
   }
 

@@ -46,20 +46,72 @@ const queryClient = new QueryClient({
 });
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [wagmiConfig, setWagmiConfig] = useState<ReturnType<typeof createConfig> | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [wagmiConfig] = useState(() => createWagmiConfig());
 
-  // Initialize wagmi config on client-side only
+  // Only show UI after component has mounted to prevent hydration errors
   useEffect(() => {
-    setWagmiConfig(createWagmiConfig());
+    setMounted(true);
   }, []);
 
-  // Show a loading state until the config is ready
-  if (!wagmiConfig && typeof window !== 'undefined') {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  // During SSR and initial client render, render a minimal version
+  // that matches what the server would render
+  if (!mounted) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow">
+          <div className="flex justify-center items-center min-h-screen">
+            {/* Empty div to match structure but no text content */}
+          </div>
+        </main>
+        <footer className="border-t border-pog-orange/20 py-6 mt-12">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="text-center md:text-left mb-4 md:mb-0">
+                <div className="text-2xl font-bold bg-gradient-to-r from-pog-orange to-pog-accent bg-clip-text text-transparent">
+                  PogPredict
+                </div>
+                <p className="text-sm text-gray-400 mt-1">
+                  The premier prediction market for esports enthusiasts
+                </p>
+              </div>
+              <div className="flex space-x-6">
+                <a 
+                  href="https://x.com/PogPredict" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-pog-orange transition-colors"
+                >
+                  Twitter
+                </a>
+                <a 
+                  href="https://discord.gg/TmNqweVxqc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-pog-orange transition-colors"
+                >
+                  Discord
+                </a>
+                <a 
+                  href="https://x.com/PogPredict/status/1882458383548318208" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-pog-orange transition-colors"
+                >
+                  Docs
+                </a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
   }
 
+  // After mounting, render the full UI with client-side features
   return (
-    <WagmiProvider config={wagmiConfig || createWagmiConfig()}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <Web3Provider>
           <ReferralProvider>
