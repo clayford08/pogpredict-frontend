@@ -1,22 +1,22 @@
 import ReferralArtifact from '../../artifacts/contracts/Referral.sol/Referral.json';
 import PogPredictArtifact from '../../artifacts/contracts/PogPredict.sol/PogPredict.json';
 
-export const AVALANCHE_TESTNET = {
-  id: 43113,
-  name: 'Avalanche Testnet',
-  network: 'avalanche-testnet',
+export const BASE_SEPOLIA = {
+  id: 84532,
+  name: 'Base Sepolia',
+  network: 'base-sepolia',
   nativeCurrency: {
     decimals: 18,
     name: 'Ethereum',
     symbol: 'ETH',
   },
   rpcUrls: {
-    default: process.env.NEXT_PUBLIC_AVALANCHE_RPC || 'https://api.avax-test.network/ext/bc/C/rpc',
+    default: process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org',
   },
   blockExplorers: {
     default: { 
-      name: 'SnowTrace', 
-      url: process.env.NEXT_PUBLIC_BLOCK_EXPLORER || 'https://testnet.snowtrace.io' 
+      name: 'BaseScan', 
+      url: process.env.NEXT_PUBLIC_BLOCK_EXPLORER || 'https://sepolia.basescan.org' 
     },
   },
   testnet: true,
@@ -39,6 +39,6 @@ export const contracts = {
   }
 };
 
-// Contract addresses on Avalanche Fuji Testnet
+// Contract addresses on Base Sepolia
 export const POGPREDICT_ADDRESS = process.env.NEXT_PUBLIC_POGPREDICT_ADDRESS || '0x0000000000000000000000000000000000000000';
 export const REFERRAL_ADDRESS = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS || '0x0000000000000000000000000000000000000000'; 

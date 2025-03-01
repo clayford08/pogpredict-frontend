@@ -6,11 +6,11 @@ features:
 dataSources:
   - kind: ethereum
     name: PogPredict
-    network: fuji
+    network: base-sepolia
     source:
-      address: "0x530Ef5B38Fc609a0fDb92eb9ECb0772e8bBc391b"
+      address: "0x1f4eF2d7442d7A6932F797804237241026A584b5"
       abi: PogPredict
-      startBlock: 38174697
+      startBlock: 22536771
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
