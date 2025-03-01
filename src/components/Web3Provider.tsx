@@ -112,7 +112,14 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsWalletModalOpen(false);
     } catch (err) {
       console.error('Error connecting to wallet:', err);
-      setError(err instanceof Error ? err : new Error('Failed to connect wallet'));
+      // Close the modal even if there's an error (like user rejection)
+      setIsWalletModalOpen(false);
+      
+      // Only set error if it's not a user rejection
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet';
+      if (!errorMessage.includes('user rejected') && !errorMessage.includes('rejected by user')) {
+        setError(err instanceof Error ? err : new Error('Failed to connect wallet'));
+      }
     }
   };
 

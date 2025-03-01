@@ -57,7 +57,11 @@ export default function MarketsPage() {
       orderBy: sortBy,
       orderDirection: 'asc'
     },
-    pollInterval: 30000 // Poll every 30 seconds
+    pollInterval: 30000, // Poll every 30 seconds
+    // Don't require authentication for fetching markets
+    context: {
+      skipAuth: true
+    }
   });
 
   // Generate unique categories from market tournaments

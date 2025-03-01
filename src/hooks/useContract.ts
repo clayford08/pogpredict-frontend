@@ -25,7 +25,25 @@ export function useContract() {
     if (!window.ethereum) return null;
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+      
+      // Try to get signer, but don't throw if user rejects
+      let signer;
+      try {
+        signer = await provider.getSigner();
+      } catch (signerError: any) {
+        // If user rejected the connection, just return null without throwing
+        if (signerError.message && (
+            signerError.message.includes('user rejected') || 
+            signerError.message.includes('rejected by user') ||
+            signerError.code === 'ACTION_REJECTED'
+          )) {
+          console.log('User rejected wallet connection');
+          return null;
+        }
+        // For other errors, rethrow
+        throw signerError;
+      }
+      
       return new ethers.Contract(
         config.contracts.PogPredict.address,
         config.contracts.PogPredict.abi,

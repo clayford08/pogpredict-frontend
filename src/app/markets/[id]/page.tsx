@@ -83,9 +83,14 @@ export default function MarketPage({ params }: MarketPageProps) {
 
       // Fetch user balances if connected
       if (address) {
-        const balances = await getUserBalances(marketId, address);
-        if (mountedRef.current && balances) {
-          setUserBalances(balances);
+        try {
+          const balances = await getUserBalances(marketId, address);
+          if (mountedRef.current && balances) {
+            setUserBalances(balances);
+          }
+        } catch (balanceError) {
+          console.error('Error fetching user balances:', balanceError);
+          // Don't set an error for the whole page if just balances fail
         }
       }
     } catch (err) {
@@ -127,6 +132,7 @@ export default function MarketPage({ params }: MarketPageProps) {
           setHasReferrer(hasRef);
         } catch (error) {
           console.error('Error checking referrer:', error);
+          // Don't set an error for the whole page if just referrer check fails
         }
       }
     };
