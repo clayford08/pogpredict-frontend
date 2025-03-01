@@ -1,11 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain } from 'wagmi';
-import { metaMask } from 'wagmi/connectors';
+import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain, Connector } from 'wagmi';
+import { metaMask, coinbaseWallet, walletConnect } from 'wagmi/connectors';
 import { baseSepolia } from 'wagmi/chains';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 import WalletFallback from './WalletFallback';
+import WalletConnectModal from './WalletConnectModal';
 
 interface Web3ContextType {
   account: string | null;
@@ -27,6 +28,32 @@ const Web3Context = createContext<Web3ContextType>({
 
 export const useWeb3 = () => useContext(Web3Context);
 
+// Define wallet options
+const walletOptions = [
+  {
+    id: 'coinbase',
+    name: 'Coinbase Wallet',
+    connector: coinbaseWallet({ appName: 'PogPredict' }),
+    icon: '/wallets/coinbase.svg',
+    description: 'Connect using Coinbase Wallet app',
+    preferred: true
+  },
+  {
+    id: 'metamask',
+    name: 'MetaMask',
+    connector: metaMask(),
+    icon: '/wallets/metamask.svg',
+    description: 'Connect using MetaMask browser extension'
+  },
+  {
+    id: 'walletconnect',
+    name: 'WalletConnect',
+    connector: walletConnect({ projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '' }),
+    icon: '/wallets/walletconnect.svg',
+    description: 'Connect using mobile wallet'
+  }
+];
+
 export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { address, isConnected, chain } = useAccount();
   const { connectAsync, isPending } = useConnect();
@@ -35,36 +62,18 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: walletClient } = useWalletClient();
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const [isWalletAvailable, setIsWalletAvailable] = useState<boolean>(false);
+  const [isWalletAvailable, setIsWalletAvailable] = useState<boolean>(true);
   const [mounted, setMounted] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   // Only run client-side code after mounting
   useEffect(() => {
     setMounted(true);
-    
-    // Check if ethereum provider is available
-    const checkProvider = () => {
-      try {
-        // Check if ethereum is available in window
-        const hasEthereum = typeof window !== 'undefined' && 
-                           (window as any).ethereum !== undefined;
-        setIsWalletAvailable(hasEthereum);
-        
-        if (!hasEthereum) {
-          console.warn('No Ethereum provider detected. Please install MetaMask or another wallet.');
-        }
-      } catch (err) {
-        console.error('Error checking for Ethereum provider:', err);
-        setIsWalletAvailable(false);
-      }
-    };
-    
-    checkProvider();
   }, []);
 
   useEffect(() => {
     const initializeSigner = async () => {
-      if (!isWalletAvailable || !mounted) {
+      if (!mounted || !isConnected) {
         setSigner(null);
         return;
       }
@@ -94,20 +103,20 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeSigner();
-  }, [walletClient, chain?.id, switchChainAsync, isWalletAvailable, mounted]);
+  }, [walletClient, chain?.id, switchChainAsync, isConnected, mounted]);
 
   const connect = async () => {
-    if (!isWalletAvailable) {
-      setError(new Error('No Ethereum wallet detected. Please install MetaMask or another compatible wallet.'));
-      return;
-    }
-    
+    setIsWalletModalOpen(true);
+  };
+
+  const handleSelectWallet = async (connector: Connector) => {
     try {
       setError(null);
       await connectAsync({ 
-        connector: metaMask(),
+        connector,
         chainId: baseSepolia.id
       });
+      setIsWalletModalOpen(false);
     } catch (err) {
       console.error('Error connecting to wallet:', err);
       setError(err instanceof Error ? err : new Error('Failed to connect wallet'));
@@ -161,6 +170,14 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       }}
     >
       {children}
+      <WalletConnectModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        walletOptions={walletOptions}
+        onSelectWallet={handleSelectWallet}
+        isConnecting={isPending}
+        connectError={error}
+      />
     </Web3Context.Provider>
   );
 };
