@@ -519,12 +519,18 @@ export default function MarketPage({ params }: MarketPageProps) {
                   {formatEther(totalPool.toString())} ETH
                 </span>
               </div>
-              {market.resolved && (
+              {market.resolved && market.status !== '2' && (
                 <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-lg">
                   <span className="text-gray-400">Winner</span>
                   <span className="text-white">
                     {market.outcome === '1' ? market.optionA : market.optionB}
                   </span>
+                </div>
+              )}
+              {market.status === '2' && (
+                <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-lg">
+                  <span className="text-gray-400">Outcome</span>
+                  <span className="text-yellow-500 font-medium">Market Refunded</span>
                 </div>
               )}
             </div>
