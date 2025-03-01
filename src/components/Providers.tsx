@@ -6,9 +6,10 @@ import { GraphQLProvider } from '@/components/GraphQLProvider';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { metaMask } from 'wagmi/connectors';
+import { metaMask, coinbaseWallet } from 'wagmi/connectors';
 import Navbar from '@/components/Navbar';
 import { useEffect, useState } from 'react';
+import { createStorage } from '@wagmi/core';
 
 // Create a client-side only config to avoid SSR issues with window.ethereum
 function createWagmiConfig() {
@@ -24,15 +25,25 @@ function createWagmiConfig() {
     });
   }
 
+  // Create storage for persisting connection
+  const storage = createStorage({
+    storage: window.localStorage,
+  });
+
   return createConfig({
     chains: [baseSepolia],
     connectors: [
-      metaMask()
+      metaMask(),
+      coinbaseWallet({ 
+        appName: 'PogPredict',
+      })
     ],
     transports: {
       [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org')
     },
-    ssr: true
+    ssr: true,
+    // Add persistence
+    storage: storage,
   });
 }
 

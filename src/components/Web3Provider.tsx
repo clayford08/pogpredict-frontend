@@ -64,6 +64,13 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     setMounted(true);
   }, []);
 
+  // Check if wallet is available
+  useEffect(() => {
+    if (mounted) {
+      setIsWalletAvailable(!!window.ethereum);
+    }
+  }, [mounted]);
+
   useEffect(() => {
     const initializeSigner = async () => {
       if (!mounted || !isConnected) {
