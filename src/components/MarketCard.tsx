@@ -61,7 +61,9 @@ export default function MarketCard({ market }: MarketCardProps) {
               <span className={`text-xs font-semibold px-2 py-1 rounded ${
                 market.status === 'ACTIVE' ? 'bg-green-500/20 text-green-500' : 
                 market.status === 'ENDED' ? 'bg-red-500/20 text-red-500' :
-                'bg-yellow-500/20 text-yellow-500'
+                market.status === 'REFUNDED' ? 'bg-yellow-500/20 text-yellow-500' :
+                market.status === 'RESOLVED' ? 'bg-blue-500/20 text-blue-500' :
+                'bg-gray-500/20 text-gray-500'
               }`}>
                 {market.status}
               </span>

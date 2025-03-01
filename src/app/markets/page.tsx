@@ -83,7 +83,18 @@ export default function MarketsPage() {
     return data.markets.filter((market: Market) => {
       const endTimeNum = Number(market.endTime) * 1000;
       const isResolved = market.outcome !== null;
-      const status = isResolved ? 'RESOLVED' : endTimeNum > Date.now() ? 'ACTIVE' : 'ENDED';
+      const isRefunded = market.resolutionDetails?.toLowerCase().includes('refund');
+      
+      let status;
+      if (isRefunded) {
+        status = 'REFUNDED';
+      } else if (isResolved) {
+        status = 'RESOLVED';
+      } else if (endTimeNum > Date.now()) {
+        status = 'ACTIVE';
+      } else {
+        status = 'ENDED';
+      }
 
       const matchesSearch = searchQuery === '' || 
         market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -163,24 +174,41 @@ export default function MarketsPage() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMarkets.map((market: Market) => (
-            <MarketCard 
-              key={market.id} 
-              market={{
-                id: Number(market.id),
-                question: market.question,
-                optionA: market.optionA,
-                optionB: market.optionB,
-                category: market.category,
-                logoUrlA: market.logoUrlA,
-                logoUrlB: market.logoUrlB,
-                endTime: Number(market.endTime),
-                status: Number(market.endTime) * 1000 > Date.now() ? 'ACTIVE' : 'ENDED',
-                totalOptionA: market.totalPoolA,
-                totalOptionB: market.totalPoolB
-              }} 
-            />
-          ))}
+          {filteredMarkets.map((market: Market) => {
+            const endTimeNum = Number(market.endTime) * 1000;
+            const isResolved = market.outcome !== null;
+            const isRefunded = market.resolutionDetails?.toLowerCase().includes('refund');
+            
+            let status;
+            if (isRefunded) {
+              status = 'REFUNDED';
+            } else if (isResolved) {
+              status = 'RESOLVED';
+            } else if (endTimeNum > Date.now()) {
+              status = 'ACTIVE';
+            } else {
+              status = 'ENDED';
+            }
+            
+            return (
+              <MarketCard 
+                key={market.id} 
+                market={{
+                  id: Number(market.id),
+                  question: market.question,
+                  optionA: market.optionA,
+                  optionB: market.optionB,
+                  category: market.category,
+                  logoUrlA: market.logoUrlA,
+                  logoUrlB: market.logoUrlB,
+                  endTime: Number(market.endTime),
+                  status: status,
+                  totalOptionA: market.totalPoolA,
+                  totalOptionB: market.totalPoolB
+                }} 
+              />
+            );
+          })}
         </div>
 
         {filteredMarkets.length === 0 && (
