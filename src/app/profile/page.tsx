@@ -5,6 +5,7 @@ import { useWeb3 } from '@/components/Web3Provider';
 import { useProfileData } from '@/hooks/useProfileData';
 import OverallStats from '@/components/profile/OverallStats';
 import RecentActivity from '@/components/profile/RecentActivity';
+import SubgraphIndexingMessage from '@/components/SubgraphIndexingMessage';
 
 export default function ProfilePage() {
   const { account, connect } = useWeb3();
@@ -35,6 +36,15 @@ export default function ProfilePage() {
   }
 
   if (error) {
+    // Check if the error is related to the subgraph still indexing
+    if (error.includes("has no field") || error.includes("Cannot query field")) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <SubgraphIndexingMessage entityName="User profiles" />
+        </div>
+      );
+    }
+    
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="cyber-card text-center">

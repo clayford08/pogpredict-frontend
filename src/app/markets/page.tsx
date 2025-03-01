@@ -5,6 +5,7 @@ import MarketCard from '@/components/MarketCard';
 import MarketSearch from '@/components/MarketSearch';
 import { useQuery } from '@apollo/client';
 import { GET_MARKETS } from '@/graphql/queries';
+import SubgraphIndexingMessage from '@/components/SubgraphIndexingMessage';
 
 interface Market {
   id: string;
@@ -119,6 +120,15 @@ export default function MarketsPage() {
   }
 
   if (error) {
+    // Check if the error is related to the subgraph still indexing
+    if (error.message.includes("has no field") || error.message.includes("Cannot query field")) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <SubgraphIndexingMessage entityName="Markets" />
+        </div>
+      );
+    }
+    
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="cyber-card">

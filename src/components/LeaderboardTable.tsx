@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useLeaderboard, TimeFrame, SortBy } from '../hooks/useLeaderboard';
 import { shortenAddress } from '../utils/address';
 import { useWeb3 } from '@/components/Web3Provider';
+import SubgraphIndexingMessage from '@/components/SubgraphIndexingMessage';
 
 interface LeaderboardTableProps {
   timeframe: TimeFrame;
@@ -103,11 +104,18 @@ export function LeaderboardTable({ timeframe }: LeaderboardTableProps) {
   };
 
   if (loading) return <LeaderboardSkeleton />;
-  if (error) return (
-    <div className="cyber-card bg-red-900/20 border-red-500/20">
-      <p className="text-red-500">Error: {error}</p>
-    </div>
-  );
+  if (error) {
+    // Check if the error is related to the subgraph still indexing
+    if (error.includes("has no field") || error.includes("Cannot query field")) {
+      return <SubgraphIndexingMessage entityName="Leaderboard data" />;
+    }
+    
+    return (
+      <div className="cyber-card bg-red-900/20 border-red-500/20">
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
 
   const sortedEntries = sortEntries(unsortedEntries);
 

@@ -7,6 +7,7 @@ import { formatEther } from '@/lib/utils';
 import Link from 'next/link';
 import { useQuery } from '@apollo/client';
 import { GET_CLAIMABLE_MARKETS } from '@/graphql/queries';
+import SubgraphIndexingMessage from '@/components/SubgraphIndexingMessage';
 
 interface ClaimableMarket {
   id: number;
@@ -208,6 +209,15 @@ export default function ClaimsPage() {
   }
 
   if (queryError) {
+    // Check if the error is related to the subgraph still indexing
+    if (queryError.message.includes("has no field") || queryError.message.includes("Cannot query field")) {
+      return (
+        <div className="container mx-auto px-4 py-8 min-h-screen">
+          <SubgraphIndexingMessage entityName="Claimable markets" />
+        </div>
+      );
+    }
+    
     return (
       <div className="container mx-auto px-4 py-8 min-h-screen">
         <div className="cyber-card bg-red-900/20 border-red-500/20">
