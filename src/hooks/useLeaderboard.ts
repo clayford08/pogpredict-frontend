@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client';
 import { GET_LEADERBOARD } from '@/graphql/queries';
-import { formatAVAX } from '@/lib/utils';
+import { formatETH } from '@/lib/utils';
 
 export type TimeFrame = 'all' | 'monthly' | 'weekly';
 export type SortBy = 'winnings' | 'streak';
@@ -56,12 +56,12 @@ export function useLeaderboard(timeframe: TimeFrame = 'all', sortBy: SortBy = 'w
     totalBets: user.totalBets.toString(),
     wins: user.wins.toString(),
     losses: user.losses.toString(),
-    totalWinnings: formatAVAX(user.totalWinnings),
-    totalStaked: formatAVAX(user.totalStaked),
+    totalWinnings: formatETH(user.totalWinnings),
+    totalStaked: formatETH(user.totalStaked),
     currentStreak: user.currentStreak.toString(),
     bestStreak: user.bestStreak.toString(),
-    largestWin: formatAVAX(user.largestWin),
-    largestLoss: formatAVAX(user.largestLoss)
+    largestWin: formatETH(user.largestWin),
+    largestLoss: formatETH(user.largestLoss)
   })) || [];
 
   return {

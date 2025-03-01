@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain } from 'wagmi';
 import { metaMask } from 'wagmi/connectors';
-import { avalancheFuji } from 'wagmi/chains';
+import { baseSepolia } from 'wagmi/chains';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 
 interface Web3ContextType {
@@ -40,13 +40,13 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       if (walletClient) {
         try {
           // Check if we're on the right chain
-          if (chain?.id !== avalancheFuji.id) {
-            await switchChainAsync({ chainId: avalancheFuji.id });
+          if (chain?.id !== baseSepolia.id) {
+            await switchChainAsync({ chainId: baseSepolia.id });
           }
 
           const provider = new BrowserProvider(walletClient.transport, {
-            name: avalancheFuji.name,
-            chainId: avalancheFuji.id
+            name: baseSepolia.name,
+            chainId: baseSepolia.id
           });
           const signer = await provider.getSigner();
           setSigner(signer);
@@ -69,7 +69,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       await connectAsync({ 
         connector: metaMask(),
-        chainId: avalancheFuji.id
+        chainId: baseSepolia.id
       });
     } catch (err) {
       console.error('Error connecting to wallet:', err);

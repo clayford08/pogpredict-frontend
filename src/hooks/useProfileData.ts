@@ -70,9 +70,9 @@ export function useProfileData(address: string | undefined) {
     marketsParticipated: Number(user.totalBets),
     wins: Number(user.wins),
     losses: Number(user.losses),
-    totalAVAXWon: formatEther(user.totalWinnings),
-    lifetimeAVAXStaked: formatEther(user.totalStaked),
-    activeAVAXStaked: '0', // This will need to be calculated from active bets if needed
+    totalETHWon: formatEther(user.totalWinnings),
+    lifetimeETHStaked: formatEther(user.totalStaked),
+    activeETHStaked: '0', // This will need to be calculated from active bets if needed
     lastActiveTimestamp: Number(user.lastActiveTimestamp),
     currentStreak: Number(user.currentStreak),
     bestStreak: Number(user.bestStreak),

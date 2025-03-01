@@ -158,7 +158,7 @@ const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete
             >
               <div className="font-bold">{market.optionA}</div>
               <div className="text-sm cyber-text">
-                Pool: {formatEther(market.poolA)} AVAX
+                Pool: {formatEther(market.poolA)} ETH
               </div>
             </button>
             <button
@@ -172,7 +172,7 @@ const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete
             >
               <div className="font-bold">{market.optionB}</div>
               <div className="text-sm cyber-text">
-                Pool: {formatEther(market.poolB)} AVAX
+                Pool: {formatEther(market.poolB)} ETH
               </div>
             </button>
           </div>
@@ -180,7 +180,7 @@ const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete
 
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-2">
-            Bet Amount (AVAX)
+            Bet Amount (ETH)
           </label>
           <input
             type="number"
@@ -197,7 +197,7 @@ const TradingForm: React.FC<TradingFormProps> = ({ market, onTransactionComplete
             <div className="text-sm text-gray-400">Price Impact</div>
             <div className="text-xl font-bold">{Number(priceImpact).toFixed(2)}%</div>
             <div className="text-sm text-gray-400 mt-1">
-              Fee: 3% ({(parseFloat(amount) * 0.03).toFixed(4)} AVAX)
+              Fee: 3% ({(parseFloat(amount) * 0.03).toFixed(4)} ETH)
             </div>
           </div>
         )}

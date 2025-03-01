@@ -4,18 +4,18 @@ import { Web3Provider } from '@/components/Web3Provider';
 import { ReferralProvider } from '@/components/ReferralProvider';
 import { GraphQLProvider } from '@/components/GraphQLProvider';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { avalancheFuji } from 'wagmi/chains';
+import { baseSepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { metaMask } from 'wagmi/connectors';
 import Navbar from '@/components/Navbar';
 
 const config = createConfig({
-  chains: [avalancheFuji],
+  chains: [baseSepolia],
   connectors: [
     metaMask()
   ],
   transports: {
-    [avalancheFuji.id]: http(process.env.NEXT_PUBLIC_AVALANCHE_RPC || 'https://api.avax-test.network/ext/bc/C/rpc')
+    [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org')
   },
   ssr: true
 });
