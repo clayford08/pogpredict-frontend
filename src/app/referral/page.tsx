@@ -311,8 +311,8 @@ export default function ReferralPage() {
   }
 
   const formatBigInt = (value: bigint | null): string => {
-    if (!value) return '0.00';
-    return (Number(value) / 1e18).toFixed(2);
+    if (!value) return '0.00000';
+    return (Number(value) / 1e18).toFixed(5);
   };
 
   const formatFeeShare = (value: bigint | null | undefined): string => {
