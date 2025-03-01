@@ -10,7 +10,7 @@ dataSources:
     source:
       address: "0xf75cdad133a5C0567245Fd899610768D12c2aA26"
       abi: PogPredict
-      startBlock: 23500000
+      startBlock: 22541344
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
