@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain, Connector } from 'wagmi';
-import { metaMask, coinbaseWallet, walletConnect } from 'wagmi/connectors';
+import { metaMask, coinbaseWallet } from 'wagmi/connectors';
 import { baseSepolia } from 'wagmi/chains';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 import WalletFallback from './WalletFallback';
@@ -44,13 +44,6 @@ const walletOptions = [
     connector: metaMask(),
     icon: '/wallets/metamask.svg',
     description: 'Connect using MetaMask browser extension'
-  },
-  {
-    id: 'walletconnect',
-    name: 'WalletConnect',
-    connector: walletConnect({ projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '' }),
-    icon: '/wallets/walletconnect.svg',
-    description: 'Connect using mobile wallet'
   }
 ];
 
