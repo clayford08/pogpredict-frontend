@@ -8,17 +8,33 @@ import { baseSepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { metaMask } from 'wagmi/connectors';
 import Navbar from '@/components/Navbar';
+import { useEffect, useState } from 'react';
 
-const config = createConfig({
-  chains: [baseSepolia],
-  connectors: [
-    metaMask()
-  ],
-  transports: {
-    [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org')
-  },
-  ssr: true
-});
+// Create a client-side only config to avoid SSR issues with window.ethereum
+function createWagmiConfig() {
+  // Safe check for window object (for SSR)
+  if (typeof window === 'undefined') {
+    return createConfig({
+      chains: [baseSepolia],
+      connectors: [],
+      transports: {
+        [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org')
+      },
+      ssr: true
+    });
+  }
+
+  return createConfig({
+    chains: [baseSepolia],
+    connectors: [
+      metaMask()
+    ],
+    transports: {
+      [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_RPC || 'https://sepolia.base.org')
+    },
+    ssr: true
+  });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,8 +46,20 @@ const queryClient = new QueryClient({
 });
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  const [wagmiConfig, setWagmiConfig] = useState<ReturnType<typeof createConfig> | null>(null);
+
+  // Initialize wagmi config on client-side only
+  useEffect(() => {
+    setWagmiConfig(createWagmiConfig());
+  }, []);
+
+  // Show a loading state until the config is ready
+  if (!wagmiConfig && typeof window !== 'undefined') {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig || createWagmiConfig()}>
       <QueryClientProvider client={queryClient}>
         <Web3Provider>
           <ReferralProvider>

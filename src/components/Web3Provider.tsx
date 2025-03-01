@@ -5,6 +5,7 @@ import { useAccount, useConnect, useDisconnect, useWalletClient, useSwitchChain 
 import { metaMask } from 'wagmi/connectors';
 import { baseSepolia } from 'wagmi/chains';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
+import WalletFallback from './WalletFallback';
 
 interface Web3ContextType {
   account: string | null;
@@ -34,9 +35,36 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: walletClient } = useWalletClient();
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [isWalletAvailable, setIsWalletAvailable] = useState<boolean>(false);
+
+  // Check if ethereum provider is available
+  useEffect(() => {
+    const checkProvider = () => {
+      try {
+        // Check if ethereum is available in window
+        const hasEthereum = typeof window !== 'undefined' && 
+                           (window as any).ethereum !== undefined;
+        setIsWalletAvailable(hasEthereum);
+        
+        if (!hasEthereum) {
+          console.warn('No Ethereum provider detected. Please install MetaMask or another wallet.');
+        }
+      } catch (err) {
+        console.error('Error checking for Ethereum provider:', err);
+        setIsWalletAvailable(false);
+      }
+    };
+    
+    checkProvider();
+  }, []);
 
   useEffect(() => {
     const initializeSigner = async () => {
+      if (!isWalletAvailable) {
+        setSigner(null);
+        return;
+      }
+      
       if (walletClient) {
         try {
           // Check if we're on the right chain
@@ -62,9 +90,14 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeSigner();
-  }, [walletClient, chain?.id, switchChainAsync]);
+  }, [walletClient, chain?.id, switchChainAsync, isWalletAvailable]);
 
   const connect = async () => {
+    if (!isWalletAvailable) {
+      setError(new Error('No Ethereum wallet detected. Please install MetaMask or another compatible wallet.'));
+      return;
+    }
+    
     try {
       setError(null);
       await connectAsync({ 
@@ -87,6 +120,11 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(err instanceof Error ? err : new Error('Failed to disconnect wallet'));
     }
   };
+
+  // If no wallet is available and we're on the client side, show the fallback
+  if (!isWalletAvailable && typeof window !== 'undefined') {
+    return <WalletFallback error={error?.message} />;
+  }
 
   return (
     <Web3Context.Provider 
